@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -38,7 +38,16 @@ function loadDraft(): string {
   return DEFAULT_CODE;
 }
 
-export default function DiagramPage() {
+function DiagramPageFallback() {
+  return (
+    <div className="flex flex-col h-screen bg-surface-950 items-center justify-center">
+      <div className="w-8 h-8 border-2 border-slate-600 border-t-sky-500 rounded-full animate-spin" />
+      <p className="mt-3 text-sm text-slate-500">Loading…</p>
+    </div>
+  );
+}
+
+function DiagramPageContent() {
   const { data: session, status: sessionStatus } = useSession();
   const [mermaidCode, setMermaidCode] = useState(DEFAULT_CODE);
   const [hydrated, setHydrated] = useState(false);
@@ -354,5 +363,13 @@ export default function DiagramPage() {
         </aside>
       </main>
     </div>
+  );
+}
+
+export default function DiagramPage() {
+  return (
+    <Suspense fallback={<DiagramPageFallback />}>
+      <DiagramPageContent />
+    </Suspense>
   );
 }
