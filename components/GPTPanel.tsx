@@ -139,7 +139,8 @@ export default function GPTPanel({
           type="button"
           onClick={onToggleCollapsed}
           className="flex items-center justify-center py-3 px-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500/50 rounded"
-          aria-label="Open GPT panel"
+          aria-label="Expand GPT panel"
+          title="Expand panel"
         >
           <span className="text-xs font-medium">GPT</span>
           <svg className="w-4 h-4 ml-1 -rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -158,7 +159,8 @@ export default function GPTPanel({
           type="button"
           onClick={onToggleCollapsed}
           className="p-1.5 text-slate-400 hover:text-slate-200 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500/50"
-          aria-label="Collapse GPT panel"
+          aria-label="Minimize panel"
+          title="Minimize panel"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

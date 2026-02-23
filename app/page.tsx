@@ -10,6 +10,10 @@ import { TEMPLATES, TEMPLATE_LABELS } from "@/lib/templates";
 import type { ExampleTemplate } from "@/types";
 
 const STORAGE_KEY = "mermaid-gpt-draft";
+const MIN_PANEL_PCT = 15;
+const MAX_PANEL_PCT = 70;
+const RESIZER_WIDTH = 6;
+
 const DEFAULT_CODE = `flowchart LR
   A[Start] --> B{OK?}
   B -->|Yes| C[End]
@@ -43,6 +47,9 @@ export default function Home() {
   const [gptCollapsed, setGptCollapsed] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [exportFeedback, setExportFeedback] = useState<"svg" | "png" | null>(null);
+  const [panelSizes, setPanelSizes] = useState({ editor: 40, renderer: 40, gpt: 20 });
+  const [resizing, setResizing] = useState<"left" | "right" | null>(null);
+  const mainRef = useRef<HTMLDivElement>(null);
 
   // Ref always holds latest editor content so GPT request uses current version at send time
   const mermaidCodeRef = useRef(mermaidCode);
@@ -140,6 +147,56 @@ export default function Home() {
     []
   );
 
+  const handleResizeMove = useCallback(
+    (e: MouseEvent) => {
+      if (!resizing || !mainRef.current) return;
+      const rect = mainRef.current.getBoundingClientRect();
+      const w = rect.width;
+      if (w <= 0) return;
+      const x = e.clientX - rect.left;
+      if (resizing === "left") {
+        const editorPct = Math.min(MAX_PANEL_PCT, Math.max(MIN_PANEL_PCT, (x / w) * 100));
+        const rest = 100 - editorPct - panelSizes.gpt;
+        const rendererPct = Math.min(MAX_PANEL_PCT, Math.max(MIN_PANEL_PCT, rest));
+        const gptPct = 100 - editorPct - rendererPct;
+        setPanelSizes({
+          editor: editorPct,
+          renderer: rendererPct,
+          gpt: Math.max(MIN_PANEL_PCT, Math.min(MAX_PANEL_PCT, gptPct)),
+        });
+      } else {
+        const gptPct = Math.min(MAX_PANEL_PCT, Math.max(MIN_PANEL_PCT, ((rect.right - e.clientX) / w) * 100));
+        const rest = 100 - panelSizes.editor - gptPct;
+        const rendererPct = Math.min(MAX_PANEL_PCT, Math.max(MIN_PANEL_PCT, rest));
+        const editorPct = 100 - rendererPct - gptPct;
+        setPanelSizes({
+          editor: Math.max(MIN_PANEL_PCT, Math.min(MAX_PANEL_PCT, editorPct)),
+          renderer: rendererPct,
+          gpt: gptPct,
+        });
+      }
+    },
+    [resizing, panelSizes.gpt, panelSizes.editor]
+  );
+
+  const handleResizeEnd = useCallback(() => {
+    setResizing(null);
+  }, []);
+
+  useEffect(() => {
+    if (!resizing) return;
+    document.body.classList.add("select-none");
+    document.body.style.cursor = "col-resize";
+    window.addEventListener("mousemove", handleResizeMove);
+    window.addEventListener("mouseup", handleResizeEnd);
+    return () => {
+      document.body.classList.remove("select-none");
+      document.body.style.cursor = "";
+      window.removeEventListener("mousemove", handleResizeMove);
+      window.removeEventListener("mouseup", handleResizeEnd);
+    };
+  }, [resizing, handleResizeMove, handleResizeEnd]);
+
   if (sessionStatus === "loading") {
     return (
       <div className="flex flex-col h-screen bg-surface-950 items-center justify-center">
@@ -235,8 +292,22 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[2fr_2fr_1fr] xl:grid-cols-[2fr_2fr_1.2fr] gap-3 p-3">
-        <section className="min-h-0 flex flex-col transition-opacity duration-200" aria-label="Editor">
+      <main
+        ref={mainRef}
+        className="flex-1 min-h-0 flex flex-col lg:flex-row p-3 gap-3 lg:gap-0"
+        style={
+          {
+            "--editor-pct": `${panelSizes.editor}%`,
+            "--renderer-pct": `${panelSizes.renderer}%`,
+            "--gpt-pct": `${panelSizes.gpt}%`,
+            "--resizer-w": `${RESIZER_WIDTH}px`,
+          } as React.CSSProperties
+        }
+      >
+        <section
+          className="min-h-0 flex flex-col flex-1 min-w-0 w-full lg:w-[var(--editor-pct)] lg:max-w-[var(--editor-pct)]"
+          aria-label="Editor"
+        >
           <div className="flex items-center justify-between mb-1.5 px-0.5">
             <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Editor</span>
           </div>
@@ -244,7 +315,16 @@ export default function Home() {
             <EditorPanel value={mermaidCode} onChange={setMermaidCode} />
           </div>
         </section>
-        <section className="min-h-0 flex flex-col transition-opacity duration-200" aria-label="Preview">
+        <div
+          className="hidden lg:block shrink-0 w-[var(--resizer-w)] min-w-[var(--resizer-w)] cursor-col-resize border-l border-r border-slate-700/50 bg-slate-800/30 hover:bg-sky-500/20 transition-colors"
+          onMouseDown={(e) => e.button === 0 && setResizing("left")}
+          aria-label="Resize editor and preview"
+          role="separator"
+        />
+        <section
+          className="min-h-0 flex flex-col flex-1 min-w-0 w-full lg:w-[var(--renderer-pct)] lg:max-w-[var(--renderer-pct)]"
+          aria-label="Preview"
+        >
           <div className="flex items-center justify-between mb-1.5 px-0.5">
             <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Preview</span>
           </div>
@@ -252,8 +332,14 @@ export default function Home() {
             <RendererPanel code={mermaidCode} onSvgReady={handleSvgReady} />
           </div>
         </section>
+        <div
+          className="hidden lg:block shrink-0 w-[var(--resizer-w)] min-w-[var(--resizer-w)] cursor-col-resize border-l border-r border-slate-700/50 bg-slate-800/30 hover:bg-sky-500/20 transition-colors"
+          onMouseDown={(e) => e.button === 0 && setResizing("right")}
+          aria-label="Resize preview and GPT"
+          role="separator"
+        />
         <aside
-          className="min-w-0 min-h-[200px] lg:min-h-0 flex flex-col w-full lg:max-w-[320px]"
+          className="min-w-0 min-h-[200px] flex flex-col flex-1 min-w-0 w-full lg:w-[var(--gpt-pct)] lg:max-w-[var(--gpt-pct)]"
           aria-label="GPT Assistant"
         >
           <GPTPanel
