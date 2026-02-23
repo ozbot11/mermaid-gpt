@@ -62,23 +62,49 @@ function DiagramPageContent() {
   const allowed = Boolean(session?.user?.allowed);
   const searchParams = useSearchParams();
   const projectId = searchParams.get("id");
+  const templateKey = searchParams.get("template") as ExampleTemplate | null;
+  const [currentProject, setCurrentProject] = useState<{ id: number; name: string } | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
+  const [showDiagramTip, setShowDiagramTip] = useState(false);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!window.localStorage.getItem("mermaid-gpt-diagram-tip-seen")) setShowDiagramTip(true);
+  }, []);
+
+  useEffect(() => {
+    const template = templateKey && TEMPLATES[templateKey] ? TEMPLATES[templateKey] : null;
     if (projectId) {
       const numId = Number(projectId);
       if (Number.isInteger(numId)) {
         getProject(numId)
           .then((p) => {
-            if (p) setMermaidCode(p.mermaidCode);
+            if (p) {
+              setMermaidCode(p.mermaidCode);
+              setCurrentProject({ id: p.id, name: p.name });
+            }
+            setIsDirty(false);
             setHydrated(true);
           })
           .catch(() => setHydrated(true));
       } else setHydrated(true);
+    } else if (template) {
+      setMermaidCode(template);
+      setCurrentProject(null);
+      setIsDirty(false);
+      setHydrated(true);
     } else {
       setMermaidCode(loadDraft());
+      setCurrentProject(null);
+      setIsDirty(false);
       setHydrated(true);
     }
-  }, [projectId]);
+  }, [projectId, templateKey]);
+
+  const handleEditorChange = useCallback((code: string) => {
+    setMermaidCode(code);
+    setIsDirty(true);
+  }, []);
 
   useEffect(() => {
     mermaidCodeRef.current = mermaidCode;
@@ -152,9 +178,27 @@ function DiagramPageContent() {
     }
   }, [mermaidCode]);
 
-  const resetDiagram = useCallback(() => setMermaidCode(DEFAULT_CODE), []);
+  const [copyLinkFeedback, setCopyLinkFeedback] = useState(false);
+  const copyDiagramLink = useCallback(async () => {
+    try {
+      const url = typeof window !== "undefined" ? window.location.href : "";
+      await navigator.clipboard.writeText(url);
+      setCopyLinkFeedback(true);
+      setTimeout(() => setCopyLinkFeedback(false), 1500);
+    } catch {
+      // ignore
+    }
+  }, []);
 
-  const applyTemplate = useCallback((key: ExampleTemplate) => setMermaidCode(TEMPLATES[key]), []);
+  const resetDiagram = useCallback(() => {
+    setMermaidCode(DEFAULT_CODE);
+    setIsDirty(true);
+  }, []);
+
+  const applyTemplate = useCallback((key: ExampleTemplate) => {
+    setMermaidCode(TEMPLATES[key]);
+    setIsDirty(true);
+  }, []);
 
   const templateOptions = useMemo(
     () =>
@@ -244,8 +288,23 @@ function DiagramPageContent() {
     );
   }
 
+  const dismissDiagramTip = () => {
+    setShowDiagramTip(false);
+    try {
+      if (typeof window !== "undefined") window.localStorage.setItem("mermaid-gpt-diagram-tip-seen", "1");
+    } catch {
+      // ignore
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen bg-surface-950">
+      {showDiagramTip && (
+        <div className="shrink-0 flex items-center justify-between gap-2 py-1.5 px-3 bg-slate-800/80 border-b border-slate-700/50 text-xs text-slate-400">
+          <span>Tip: Use <strong className="text-slate-300">Templates</strong> to start quickly; use the <strong className="text-slate-300">GPT</strong> panel to fix, improve, or generate diagrams.</span>
+          <button type="button" onClick={dismissDiagramTip} className="shrink-0 text-slate-500 hover:text-slate-300" aria-label="Dismiss tip">×</button>
+        </div>
+      )}
       <header className="shrink-0 flex flex-wrap items-center gap-2 py-2.5 px-4 border-b border-slate-700/60 bg-surface-900/95 backdrop-blur-sm transition-colors">
         <Link
           href="/"
@@ -259,6 +318,10 @@ function DiagramPageContent() {
         </Link>
         <div className="h-5 w-px bg-slate-600" aria-hidden />
         <h1 className="text-lg font-semibold text-slate-100 mr-2 tracking-tight">MermaidGPT</h1>
+        <span className="text-slate-500 text-sm truncate max-w-[120px] sm:max-w-[200px]" title={currentProject ? currentProject.name : "Untitled"}>
+          {currentProject ? currentProject.name : "Untitled"}
+          {isDirty && <span className="text-amber-400 ml-1" title="Unsaved changes">•</span>}
+        </span>
         <div className="h-5 w-px bg-slate-600" aria-hidden />
         <select
           aria-label="Load example template"
@@ -279,8 +342,16 @@ function DiagramPageContent() {
         </select>
         <ProjectsDropdown
           mermaidCode={mermaidCode}
-          onLoadProject={setMermaidCode}
-          onNewProject={() => setMermaidCode(DEFAULT_CODE)}
+          onLoadProject={(code, project) => {
+            setMermaidCode(code);
+            setCurrentProject(project ? { id: project.id, name: project.name } : null);
+            setIsDirty(false);
+          }}
+          onNewProject={() => {
+            setMermaidCode(DEFAULT_CODE);
+            setCurrentProject(null);
+            setIsDirty(false);
+          }}
         />
         <button
           type="button"
@@ -289,6 +360,14 @@ function DiagramPageContent() {
           title="Copy Mermaid code"
         >
           {copyFeedback ? "Copied!" : "Copy code"}
+        </button>
+        <button
+          type="button"
+          onClick={copyDiagramLink}
+          className="px-2.5 py-1.5 text-sm rounded-md bg-slate-700/80 hover:bg-slate-600 text-slate-200 transition-colors"
+          title="Copy diagram link"
+        >
+          {copyLinkFeedback ? "Copied!" : "Copy link"}
         </button>
         <button
           type="button"
@@ -339,7 +418,7 @@ function DiagramPageContent() {
             <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Editor</span>
           </div>
           <div className="flex-1 min-h-[280px] rounded-lg overflow-hidden border border-slate-700/50 bg-[#1e1e1e] shadow-inner transition-shadow">
-            <EditorPanel value={mermaidCode} onChange={setMermaidCode} />
+            <EditorPanel value={mermaidCode} onChange={handleEditorChange} />
           </div>
         </section>
         <div className="hidden lg:block shrink-0 w-[var(--resizer-w)] min-w-[var(--resizer-w)] cursor-col-resize border-l border-r border-slate-700/50 bg-slate-800/30 hover:bg-sky-500/20 transition-colors" onMouseDown={(e) => e.button === 0 && setResizing("left")} aria-label="Resize editor and preview" role="separator" />

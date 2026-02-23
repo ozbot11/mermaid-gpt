@@ -15,7 +15,7 @@ function formatDate(ts: number): string {
 
 interface ProjectsDropdownProps {
   mermaidCode: string;
-  onLoadProject: (mermaidCode: string) => void;
+  onLoadProject: (mermaidCode: string, project?: Project) => void;
   onNewProject: () => void;
 }
 
@@ -76,7 +76,7 @@ export default function ProjectsDropdown({ mermaidCode, onLoadProject, onNewProj
     (id: number) => {
       getProject(id).then((p) => {
         if (p) {
-          onLoadProject(p.mermaidCode);
+          onLoadProject(p.mermaidCode, p);
           setOpen(false);
         }
       });

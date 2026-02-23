@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import AuthButton from "@/components/AuthButton";
-import { getProjects } from "@/lib/db";
+import { deleteProject, getProjects, saveProject } from "@/lib/db";
 import type { Project } from "@/types";
+
+const ONBOARDED_KEY = "mermaid-gpt-onboarded";
 
 function formatDate(ms: number): string {
   const d = new Date(ms);
@@ -22,18 +24,74 @@ export default function Home() {
   const { data: session, status: sessionStatus } = useSession();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isFirstVisit, setIsFirstVisit] = useState(false);
   const allowed = Boolean(session?.user?.allowed);
 
-  useEffect(() => {
+  const refreshProjects = useCallback(() => {
     if (typeof window === "undefined" || !allowed) {
       setLoading(false);
       return;
     }
+    setLoading(true);
     getProjects()
       .then(setProjects)
       .catch(() => setProjects([]))
       .finally(() => setLoading(false));
   }, [allowed]);
+
+  useEffect(() => {
+    refreshProjects();
+  }, [refreshProjects]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!window.localStorage.getItem(ONBOARDED_KEY)) setIsFirstVisit(true);
+  }, []);
+
+  const handleDismissWelcome = () => {
+    setIsFirstVisit(false);
+    try {
+      if (typeof window !== "undefined") window.localStorage.setItem(ONBOARDED_KEY, "1");
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleDelete = async (e: React.MouseEvent, p: Project) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirm(`Delete "${p.name}"? This cannot be undone.`)) return;
+    try {
+      await deleteProject(p.id);
+      refreshProjects();
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleRename = async (e: React.MouseEvent, p: Project) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const name = prompt("Rename diagram", p.name);
+    if (name == null || name.trim() === p.name.trim()) return;
+    try {
+      await saveProject({ id: p.id, name: name.trim(), mermaidCode: p.mermaidCode });
+      refreshProjects();
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleDuplicate = async (e: React.MouseEvent, p: Project) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await saveProject({ name: `${p.name} (copy)`, mermaidCode: p.mermaidCode });
+      refreshProjects();
+    } catch {
+      // ignore
+    }
+  };
 
   if (sessionStatus === "loading") {
     return (
@@ -76,6 +134,21 @@ export default function Home() {
       </header>
 
       <main className="flex-1 max-w-4xl mx-auto w-full py-8 px-6">
+        {isFirstVisit && (
+          <div className="mb-6 rounded-xl border border-sky-700/50 bg-sky-950/40 px-4 py-3 flex items-start gap-3">
+            <div className="mt-0.5 text-sky-400">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 1010 10A10.011 10.011 0 0012 2z" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-sm font-semibold text-slate-100 mb-1.5">Welcome to MermaidGPT</h2>
+              <p className="text-xs text-slate-300">Write Mermaid on the left, see a live diagram in the middle, and use the AI assistant to fix, improve, or generate diagrams.</p>
+            </div>
+            <button type="button" onClick={handleDismissWelcome} className="shrink-0 text-slate-400 hover:text-slate-100 text-xl leading-none" aria-label="Dismiss">×</button>
+          </div>
+        )}
+
         <div className="mb-8">
           <Link
             href="/diagram"
@@ -100,11 +173,18 @@ export default function Home() {
             <span className="text-sm">Loading…</span>
           </div>
         ) : projects.length === 0 ? (
-          <p className="text-slate-500 text-sm">No diagrams yet. Create one with &quot;New diagram&quot; above.</p>
+          <div className="space-y-3 text-sm">
+            <p className="text-slate-500">No diagrams yet. Create one above or start from a template:</p>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/diagram?template=flowchart" className="px-3 py-1.5 rounded-lg bg-surface-800 border border-slate-600 text-slate-200 hover:bg-surface-700 transition-colors">Flowchart</Link>
+              <Link href="/diagram?template=sequence" className="px-3 py-1.5 rounded-lg bg-surface-800 border border-slate-600 text-slate-200 hover:bg-surface-700 transition-colors">Sequence</Link>
+              <Link href="/diagram?template=class" className="px-3 py-1.5 rounded-lg bg-surface-800 border border-slate-600 text-slate-200 hover:bg-surface-700 transition-colors">Class</Link>
+            </div>
+          </div>
         ) : (
           <ul className="space-y-1">
             {projects.map((p) => (
-              <li key={p.id}>
+              <li key={p.id} className="group relative">
                 <Link
                   href={`/diagram?id=${p.id}`}
                   className="flex items-center gap-4 rounded-lg px-4 py-3 text-slate-200 hover:bg-surface-800/80 transition-colors border border-transparent hover:border-slate-700/50"
@@ -124,6 +204,11 @@ export default function Home() {
                     </svg>
                   </span>
                 </Link>
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-surface-900/95 rounded-md px-1 py-0.5 border border-slate-700/50">
+                  <button type="button" onClick={(e) => handleRename(e, p)} className="p-1.5 text-slate-400 hover:text-slate-200 rounded" title="Rename">Rename</button>
+                  <button type="button" onClick={(e) => handleDuplicate(e, p)} className="p-1.5 text-slate-400 hover:text-slate-200 rounded" title="Duplicate">Duplicate</button>
+                  <button type="button" onClick={(e) => handleDelete(e, p)} className="p-1.5 text-red-400 hover:text-red-300 rounded" title="Delete">Delete</button>
+                </div>
               </li>
             ))}
           </ul>

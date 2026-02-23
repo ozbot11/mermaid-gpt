@@ -44,16 +44,18 @@ export default function GPTPanel({
   const [pendingMermaid, setPendingMermaid] = useState<string | null>(null);
   const [appliedFeedback, setAppliedFeedback] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
+  const lastFailedInputRef = useRef<string>("");
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, loading]);
 
-  const send = useCallback(async () => {
-    const text = input.trim();
+  const send = useCallback(async (overrideInput?: string) => {
+    const text = (overrideInput ?? input).trim();
     if (!text || loading) return;
 
-    setInput("");
+    if (!overrideInput) setInput("");
+    lastFailedInputRef.current = text;
     const userMsg: GPTMessage = {
       id: `u-${Date.now()}`,
       role: "user",
@@ -90,7 +92,13 @@ export default function GPTPanel({
       };
       setMessages((prev) => [...prev, assistantMsg]);
     } catch (err) {
-      const content = err instanceof Error ? err.message : "Something went wrong";
+      lastFailedInputRef.current = text;
+      const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+      const content = isOffline
+        ? "You appear to be offline. Check your connection and try again."
+        : err instanceof Error
+          ? err.message
+          : "Something went wrong. Try again.";
       setMessages((prev) => [
         ...prev,
         {
@@ -250,6 +258,15 @@ export default function GPTPanel({
             <span>Thinking…</span>
           </div>
         )}
+        {messages.length > 0 && messages[messages.length - 1].role === "assistant" && messages[messages.length - 1].content.startsWith("Error:") && (
+          <button
+            type="button"
+            onClick={() => send(lastFailedInputRef.current)}
+            className="px-3 py-1.5 text-xs rounded-md bg-sky-600 hover:bg-sky-500 text-white transition-colors"
+          >
+            Retry
+          </button>
+        )}
       </div>
 
       <div className="shrink-0 p-2 border-t border-slate-700/50">
@@ -264,7 +281,7 @@ export default function GPTPanel({
           />
           <button
             type="button"
-            onClick={send}
+            onClick={() => send()}
             disabled={loading}
             className="px-3 py-2 rounded-md bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400/50 shrink-0"
           >
