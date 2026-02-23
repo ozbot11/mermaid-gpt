@@ -27,6 +27,7 @@ export default function ProjectsDropdown({ mermaidCode, onLoadProject, onNewProj
   const [dropdownRect, setDropdownRect] = useState<{ top: number; left: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const refresh = useCallback(() => {
     getProjects().then(setProjects).catch(() => setProjects([]));
@@ -38,7 +39,12 @@ export default function ProjectsDropdown({ mermaidCode, onLoadProject, onNewProj
       const btn = buttonRef.current;
       if (btn) {
         const rect = btn.getBoundingClientRect();
-        setDropdownRect({ top: rect.bottom + 4, left: rect.left });
+        const panelWidth = 288; // w-72 = 18rem = 288px
+        const padding = 8;
+        let left = rect.left;
+        if (left + panelWidth > window.innerWidth - padding) left = window.innerWidth - panelWidth - padding;
+        if (left < padding) left = padding;
+        setDropdownRect({ top: rect.bottom + 4, left });
       }
     } else {
       setDropdownRect(null);
@@ -48,9 +54,10 @@ export default function ProjectsDropdown({ mermaidCode, onLoadProject, onNewProj
   useEffect(() => {
     if (!open) return;
     const handleClick = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      const target = e.target as Node;
+      const insideButton = containerRef.current?.contains(target);
+      const insidePanel = panelRef.current?.contains(target);
+      if (!insideButton && !insidePanel) setOpen(false);
     };
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
@@ -95,6 +102,7 @@ export default function ProjectsDropdown({ mermaidCode, onLoadProject, onNewProj
     open && dropdownRect && typeof document !== "undefined"
       ? createPortal(
           <div
+            ref={panelRef}
             className="w-72 rounded-lg border border-slate-700/50 bg-surface-900 shadow-xl z-[100] overflow-hidden"
             style={{
               position: "fixed",
