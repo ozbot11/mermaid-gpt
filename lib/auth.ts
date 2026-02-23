@@ -1,6 +1,22 @@
 import type { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 
+function getAllowedEmails(): Set<string> {
+  const raw = process.env.ALLOWED_EMAILS ?? "";
+  if (!raw.trim()) return new Set();
+  return new Set(
+    raw
+      .split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean)
+  );
+}
+
+export function isEmailAllowed(email: string | null | undefined): boolean {
+  if (!email) return false;
+  return getAllowedEmails().has(email.trim().toLowerCase());
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
@@ -31,6 +47,7 @@ export const authOptions: NextAuthOptions = {
         session.user.email = token.email as string;
         session.user.image = token.picture as string;
         session.user.name = token.name as string;
+        session.user.allowed = isEmailAllowed(session.user.email);
       }
       return session;
     },

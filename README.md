@@ -9,7 +9,7 @@ A production-ready web IDE for engineers to write, edit, render, and AI-assist M
 - **GPT Assistant sidebar** (collapsible): fix syntax, improve structure, generate from description
 - Export as SVG, download as PNG, copy code, reset diagram
 - Example templates: Flowchart, Sequence, Class, State
-- **Sign in with Google** (NextAuth.js) — optional; app works without signing in
+- **Sign in with Google** (NextAuth.js) + **allowlist**: only emails in `ALLOWED_EMAILS` can use the app (protects GPT usage during development)
 
 ## Tech Stack
 
@@ -43,6 +43,7 @@ cp .env.example .env.local
   - Add authorized redirect URI: `http://localhost:3000/api/auth/callback/google`
   - Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`
 - **NextAuth**: `NEXTAUTH_SECRET` (e.g. `openssl rand -base64 32`) and `NEXTAUTH_URL=http://localhost:3000`
+- **Access control**: `ALLOWED_EMAILS=your@email.com,other@email.com` (comma-separated). Only these accounts can access the app after sign-in. If unset, no one gets in.
 
 4. Run locally:
 

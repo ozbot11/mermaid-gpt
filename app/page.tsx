@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSession } from "next-auth/react";
 import EditorPanel from "@/components/Editor";
 import RendererPanel from "@/components/Renderer";
 import GPTPanel from "@/components/GPTPanel";
@@ -35,6 +36,7 @@ function loadDraft(): string {
 }
 
 export default function Home() {
+  const { data: session, status: sessionStatus } = useSession();
   const [mermaidCode, setMermaidCode] = useState(DEFAULT_CODE);
   const [hydrated, setHydrated] = useState(false);
   const [svgForExport, setSvgForExport] = useState<string>("");
@@ -44,6 +46,8 @@ export default function Home() {
 
   // Ref always holds latest editor content so GPT request uses current version at send time
   const mermaidCodeRef = useRef(mermaidCode);
+
+  const allowed = Boolean(session?.user?.allowed);
 
   useEffect(() => {
     setMermaidCode(loadDraft());
@@ -135,6 +139,37 @@ export default function Home() {
       })),
     []
   );
+
+  if (sessionStatus === "loading") {
+    return (
+      <div className="flex flex-col h-screen bg-surface-950 items-center justify-center">
+        <div className="w-8 h-8 border-2 border-slate-600 border-t-sky-500 rounded-full animate-spin" />
+        <p className="mt-3 text-sm text-slate-500">Loading…</p>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <div className="flex flex-col h-screen bg-surface-950 items-center justify-center gap-4 px-4">
+        <h1 className="text-xl font-semibold text-slate-100">MermaidGPT</h1>
+        <p className="text-slate-400 text-center">Sign in to access the app.</p>
+        <AuthButton />
+      </div>
+    );
+  }
+
+  if (!allowed) {
+    return (
+      <div className="flex flex-col h-screen bg-surface-950 items-center justify-center gap-4 px-4">
+        <h1 className="text-xl font-semibold text-slate-100">Access denied</h1>
+        <p className="text-slate-400 text-center max-w-sm">
+          Your account is not on the access list. Contact the owner if you need access.
+        </p>
+        <AuthButton />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen bg-surface-950">
