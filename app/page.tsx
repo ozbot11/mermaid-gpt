@@ -86,14 +86,18 @@ export default function Home() {
     setTimeout(() => setExportFeedback(null), 1500);
   }, [svgForExport]);
 
+  const PNG_SCALE = 2; // 2x resolution for sharper export
+
   const exportPng = useCallback(() => {
     if (!svgForExport) return;
     const img = new Image();
     const blob = new Blob([svgForExport], { type: "image/svg+xml" });
     const url = URL.createObjectURL(blob);
     img.onload = () => {
-      const w = img.naturalWidth || img.width || 800;
-      const h = img.naturalHeight || img.height || 600;
+      const baseW = img.naturalWidth || img.width || 800;
+      const baseH = img.naturalHeight || img.height || 600;
+      const w = Math.round(baseW * PNG_SCALE);
+      const h = Math.round(baseH * PNG_SCALE);
       const canvas = document.createElement("canvas");
       canvas.width = w;
       canvas.height = h;
@@ -104,7 +108,9 @@ export default function Home() {
       }
       ctx.fillStyle = "#0f172a";
       ctx.fillRect(0, 0, w, h);
-      ctx.drawImage(img, 0, 0);
+      ctx.scale(PNG_SCALE, PNG_SCALE);
+      ctx.drawImage(img, 0, 0, baseW, baseH);
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
       canvas.toBlob(
         (b) => {
           if (b) downloadBlob(b, "diagram.png");
