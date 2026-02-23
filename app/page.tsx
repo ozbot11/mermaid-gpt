@@ -6,6 +6,7 @@ import EditorPanel from "@/components/Editor";
 import RendererPanel from "@/components/Renderer";
 import GPTPanel from "@/components/GPTPanel";
 import AuthButton from "@/components/AuthButton";
+import ProjectsDropdown from "@/components/ProjectsDropdown";
 import { TEMPLATES, TEMPLATE_LABELS } from "@/lib/templates";
 import type { ExampleTemplate } from "@/types";
 
@@ -258,6 +259,7 @@ export default function Home() {
             </option>
           ))}
         </select>
+        <ProjectsDropdown mermaidCode={mermaidCode} onLoadProject={setMermaidCode} />
         <button
           type="button"
           onClick={copyCode}

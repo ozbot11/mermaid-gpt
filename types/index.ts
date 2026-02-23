@@ -13,6 +13,14 @@ export interface GPTResponse {
   mermaid: string;
 }
 
+export interface Project {
+  id: number;
+  name: string;
+  mermaidCode: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export type ExampleTemplate =
   | "flowchart"
   | "sequence"
