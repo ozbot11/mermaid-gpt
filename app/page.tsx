@@ -259,7 +259,11 @@ export default function Home() {
             </option>
           ))}
         </select>
-        <ProjectsDropdown mermaidCode={mermaidCode} onLoadProject={setMermaidCode} />
+        <ProjectsDropdown
+          mermaidCode={mermaidCode}
+          onLoadProject={setMermaidCode}
+          onNewProject={() => setMermaidCode(DEFAULT_CODE)}
+        />
         <button
           type="button"
           onClick={copyCode}

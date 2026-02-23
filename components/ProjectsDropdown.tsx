@@ -15,9 +15,10 @@ function formatDate(ts: number): string {
 interface ProjectsDropdownProps {
   mermaidCode: string;
   onLoadProject: (mermaidCode: string) => void;
+  onNewProject: () => void;
 }
 
-export default function ProjectsDropdown({ mermaidCode, onLoadProject }: ProjectsDropdownProps) {
+export default function ProjectsDropdown({ mermaidCode, onLoadProject, onNewProject }: ProjectsDropdownProps) {
   const [open, setOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [saving, setSaving] = useState(false);
@@ -73,6 +74,11 @@ export default function ProjectsDropdown({ mermaidCode, onLoadProject }: Project
       .finally(() => setDeletingId(null));
   }, [refresh]);
 
+  const handleNewProject = useCallback(() => {
+    onNewProject();
+    setOpen(false);
+  }, [onNewProject]);
+
   return (
     <div className="relative" ref={containerRef}>
       <button
@@ -85,7 +91,14 @@ export default function ProjectsDropdown({ mermaidCode, onLoadProject }: Project
       </button>
       {open && (
         <div className="absolute left-0 top-full mt-1 w-72 rounded-lg border border-slate-700/50 bg-surface-900 shadow-lg z-50 overflow-hidden">
-          <div className="p-2 border-b border-slate-700/50">
+          <div className="p-2 space-y-1.5 border-b border-slate-700/50">
+            <button
+              type="button"
+              onClick={handleNewProject}
+              className="w-full px-3 py-2 text-sm rounded-md bg-slate-700/80 hover:bg-slate-600 text-slate-200 font-medium transition-colors"
+            >
+              New project
+            </button>
             <button
               type="button"
               onClick={handleSaveCurrent}
@@ -96,6 +109,7 @@ export default function ProjectsDropdown({ mermaidCode, onLoadProject }: Project
             </button>
           </div>
           <div className="max-h-64 overflow-y-auto p-2">
+            <p className="text-xs text-slate-500 mb-2">Click a project to open it.</p>
             {projects.length === 0 ? (
               <p className="text-xs text-slate-500 py-2">No saved projects yet.</p>
             ) : (
