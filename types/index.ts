@@ -13,4 +13,18 @@ export interface GPTResponse {
   mermaid: string;
 }
 
-export type ExampleTemplate = "flowchart" | "sequence" | "class" | "state";
+export type ExampleTemplate =
+  | "flowchart"
+  | "sequence"
+  | "class"
+  | "state"
+  | "er"
+  | "mindmap"
+  | "architecture"
+  | "gantt"
+  | "pie"
+  | "journey"
+  | "gitGraph"
+  | "block"
+  | "timeline"
+  | "c4";
