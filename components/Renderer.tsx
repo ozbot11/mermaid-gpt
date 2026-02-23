@@ -4,6 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import mermaid from "mermaid";
 
 const DEBOUNCE_MS = 300;
+const MIN_SCALE = 0.25;
+const MAX_SCALE = 3;
+const ZOOM_SENSITIVITY = 0.002;
 
 let mermaidInitialized = false;
 function ensureMermaidInit() {
@@ -22,11 +25,14 @@ interface RendererPanelProps {
 }
 
 export default function RendererPanel({ code, onSvgReady }: RendererPanelProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const [svg, setSvg] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [zoom, setZoom] = useState(100);
+  const [scale, setScale] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const panStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const render = useCallback(async (input: string) => {
@@ -66,6 +72,74 @@ export default function RendererPanel({ code, onSvgReady }: RendererPanelProps) 
     };
   }, [code, render]);
 
+  // Reset pan when diagram changes
+  useEffect(() => {
+    setPan({ x: 0, y: 0 });
+  }, [svg]);
+
+  const handleWheel = useCallback(
+    (e: React.WheelEvent) => {
+      if (!svg || error) return;
+      e.preventDefault();
+      const delta = -e.deltaY * ZOOM_SENSITIVITY;
+      const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale * (1 + delta)));
+      if (newScale === scale) return;
+      const rect = viewportRef.current?.getBoundingClientRect();
+      if (rect) {
+        const wx = e.clientX - rect.left;
+        const wy = e.clientY - rect.top;
+        const scaleFactor = newScale / scale;
+        setPan((p) => ({
+          x: wx - (wx - p.x) * scaleFactor,
+          y: wy - (wy - p.y) * scaleFactor,
+        }));
+      }
+      setScale(newScale);
+    },
+    [scale, svg, error]
+  );
+
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (!svg || error) return;
+      if (e.button !== 0) return;
+      e.preventDefault();
+      setIsPanning(true);
+      panStartRef.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y };
+    },
+    [pan, svg, error]
+  );
+
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (!isPanning) return;
+      setPan({
+        x: panStartRef.current.panX + (e.clientX - panStartRef.current.x),
+        y: panStartRef.current.panY + (e.clientY - panStartRef.current.y),
+      });
+    },
+    [isPanning]
+  );
+
+  const handleMouseUp = useCallback(() => {
+    setIsPanning(false);
+  }, []);
+
+  useEffect(() => {
+    if (!isPanning) return;
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isPanning, handleMouseMove, handleMouseUp]);
+
+  const resetView = useCallback(() => {
+    setScale(1);
+    setPan({ x: 0, y: 0 });
+  }, []);
+
   const content = useMemo(() => {
     if (loading && !svg && !error) {
       return (
@@ -91,16 +165,14 @@ export default function RendererPanel({ code, onSvgReady }: RendererPanelProps) 
     }
     return (
       <div
-        ref={containerRef}
-        className="flex items-center justify-center min-h-[200px] p-4 overflow-auto transition-opacity duration-200 [&>svg]:max-w-full [&>svg]:h-auto"
+        className="flex items-center justify-center min-h-[200px] p-4 [&>svg]:max-w-full [&>svg]:h-auto origin-top-left"
         style={{
-          transform: `scale(${zoom / 100})`,
-          transformOrigin: "center center",
+          transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
         }}
         dangerouslySetInnerHTML={{ __html: svg }}
       />
     );
-  }, [error, loading, svg, zoom]);
+  }, [error, loading, svg, scale, pan]);
 
   return (
     <div className="h-full min-h-[300px] rounded-lg border border-slate-700/50 bg-surface-900 overflow-hidden flex flex-col">
@@ -108,18 +180,18 @@ export default function RendererPanel({ code, onSvgReady }: RendererPanelProps) 
         <div className="shrink-0 flex items-center justify-end gap-1 py-1.5 px-2 border-b border-slate-700/50 bg-surface-900/80">
           <button
             type="button"
-            onClick={() => setZoom((z) => Math.max(50, z - 10))}
+            onClick={() => setScale((s) => Math.max(MIN_SCALE, s - 0.1))}
             className="p-1.5 rounded text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 transition-colors text-sm font-medium"
             title="Zoom out"
           >
             −
           </button>
           <span className="text-xs text-slate-500 min-w-[2.5rem] text-center">
-            {zoom}%
+            {Math.round(scale * 100)}%
           </span>
           <button
             type="button"
-            onClick={() => setZoom((z) => Math.min(150, z + 10))}
+            onClick={() => setScale((s) => Math.min(MAX_SCALE, s + 0.1))}
             className="p-1.5 rounded text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 transition-colors text-sm font-medium"
             title="Zoom in"
           >
@@ -127,15 +199,23 @@ export default function RendererPanel({ code, onSvgReady }: RendererPanelProps) 
           </button>
           <button
             type="button"
-            onClick={() => setZoom(100)}
+            onClick={resetView}
             className="p-1.5 rounded text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 transition-colors text-xs"
-            title="Reset zoom"
+            title="Reset zoom and pan"
           >
             Reset
           </button>
         </div>
       )}
-      <div className="flex-1 overflow-auto min-h-0">{content}</div>
+      <div
+        ref={viewportRef}
+        className={`flex-1 overflow-hidden min-h-0 ${svg && !error ? (isPanning ? "cursor-grabbing" : "cursor-grab") : ""}`}
+        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        style={{ touchAction: "none" }}
+      >
+        {content}
+      </div>
     </div>
   );
 }
