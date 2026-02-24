@@ -10,6 +10,7 @@ import GPTPanel from "@/components/GPTPanel";
 import AuthButton from "@/components/AuthButton";
 import DiagramMenuBar from "@/components/DiagramMenuBar";
 import ShortcutsDialog from "@/components/ShortcutsDialog";
+import TutorialOverlay from "@/components/TutorialOverlay";
 import { DEFAULT_CODE, STORAGE_KEY } from "@/lib/constants";
 import { getProject, saveProject } from "@/lib/db";
 import { TEMPLATES, TEMPLATE_LABELS } from "@/lib/templates";
@@ -18,6 +19,7 @@ import type { ExampleTemplate } from "@/types";
 const MIN_PANEL_PCT = 15;
 const MAX_PANEL_PCT = 70;
 const RESIZER_WIDTH = 6;
+const TUTORIAL_KEY = "mermaid-gpt-tutorial-complete";
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -70,11 +72,30 @@ function DiagramPageContent() {
   const [isDirty, setIsDirty] = useState(false);
   const [showDiagramTip, setShowDiagramTip] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(0);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!window.localStorage.getItem("mermaid-gpt-diagram-tip-seen")) setShowDiagramTip(true);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const completed = window.localStorage.getItem(TUTORIAL_KEY);
+    const tutorialParam = searchParams.get("tutorial");
+
+    if (tutorialParam === "1") {
+      setShowTutorial(true);
+      setTutorialStep(0);
+      return;
+    }
+
+    if (!completed) {
+      setShowTutorial(true);
+      setTutorialStep(0);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const template = templateKey && TEMPLATES[templateKey] ? TEMPLATES[templateKey] : null;
@@ -239,6 +260,48 @@ function DiagramPageContent() {
       .finally(() => setSaving(false));
   }, [mermaidCode, currentProject?.name, currentProject?.description]);
 
+  const startTutorial = useCallback(() => {
+    setShowTutorial(true);
+    setTutorialStep(0);
+  }, []);
+
+  const finishTutorial = useCallback(() => {
+    setShowTutorial(false);
+    try {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(TUTORIAL_KEY, "1");
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const skipTutorial = useCallback(() => {
+    setShowTutorial(false);
+    try {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(TUTORIAL_KEY, "skipped");
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        handleSaveCurrent();
+      }
+      if (e.key === "?" || (e.shiftKey && e.key === "/")) {
+        e.preventDefault();
+        setShowShortcuts((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [handleSaveCurrent]);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
@@ -380,7 +443,9 @@ function DiagramPageContent() {
             }}
             onLoadProject={(code, project) => {
               setMermaidCode(code);
-              setCurrentProject(project ? { id: project.id, name: project.name } : null);
+              setCurrentProject(
+                project ? { id: project.id, name: project.name, description: project.description } : null
+              );
               setIsDirty(false);
             }}
             onSaveCurrent={handleSaveCurrent}
@@ -397,11 +462,21 @@ function DiagramPageContent() {
             saveInProgress={saving}
             authButton={<AuthButton />}
             onShowShortcuts={() => setShowShortcuts(true)}
+            onStartTutorial={startTutorial}
           />
         </div>
       </header>
 
       <ShortcutsDialog open={showShortcuts} onClose={() => setShowShortcuts(false)} />
+
+      <TutorialOverlay
+        open={showTutorial}
+        step={tutorialStep}
+        onNext={() => setTutorialStep((s) => s + 1)}
+        onPrev={() => setTutorialStep((s) => Math.max(0, s - 1))}
+        onSkip={skipTutorial}
+        onDone={finishTutorial}
+      />
 
       <main
         ref={mainRef}

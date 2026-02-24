@@ -36,6 +36,7 @@ export interface DiagramMenuBarProps {
   saveInProgress: boolean;
   authButton: React.ReactNode;
   onShowShortcuts: () => void;
+  onStartTutorial: () => void;
 }
 
 type MenuId = "file" | "edit" | "templates" | "help" | null;
@@ -61,6 +62,7 @@ export default function DiagramMenuBar({
   saveInProgress,
   authButton,
   onShowShortcuts,
+  onStartTutorial,
 }: DiagramMenuBarProps) {
   const [openMenu, setOpenMenu] = useState<MenuId>(null);
   const [burgerOpen, setBurgerOpen] = useState(false);
@@ -240,6 +242,13 @@ export default function DiagramMenuBar({
       >
         Keyboard shortcuts
       </button>
+      <button
+        type="button"
+        onClick={() => { onStartTutorial(); setOpenMenu(null); }}
+        className="w-full text-left px-3 py-2 text-slate-200 hover:bg-slate-800"
+      >
+        Start tutorial
+      </button>
     </>
   );
 
@@ -320,6 +329,13 @@ export default function DiagramMenuBar({
                   className="w-full text-left px-3 py-2 text-slate-200 hover:bg-slate-800 rounded"
                 >
                   Keyboard shortcuts
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { onStartTutorial(); setBurgerOpen(false); }}
+                  className="w-full text-left px-3 py-2 text-slate-200 hover:bg-slate-800 rounded"
+                >
+                  Start tutorial
                 </button>
               </div>
             </div>
