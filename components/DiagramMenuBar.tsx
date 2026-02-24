@@ -133,6 +133,11 @@ export default function DiagramMenuBar({
       <div
         className="min-w-[200px] py-1 rounded-lg border border-slate-700/50 bg-surface-900 shadow-xl z-[100] text-sm"
         style={{ position: "fixed", top: rect.bottom + 4, left: rect.left }}
+        onMouseDown={(e) => {
+          // Prevent document-level mousedown handler from closing the menu
+          // before item clicks can fire.
+          e.stopPropagation();
+        }}
       >
         {children}
       </div>,
