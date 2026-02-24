@@ -321,15 +321,11 @@ function DiagramPageContent() {
       <header className="shrink-0 flex items-center gap-2 py-2 px-3 md:px-4 border-b border-slate-700/60 bg-surface-900/95 backdrop-blur-sm transition-colors">
         <Link
           href="/"
-          className="shrink-0 text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1.5"
-          title="Back to home"
+          className="shrink-0 text-slate-100 hover:text-white font-semibold text-lg tracking-tight transition-colors"
+          title="Back to diagrams"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-          </svg>
-          <span className="text-sm font-medium hidden sm:inline">Home</span>
+          MermaidGPT
         </Link>
-        <h1 className="text-lg font-semibold text-slate-100 tracking-tight shrink-0">MermaidGPT</h1>
         <div className="flex-1 min-w-0 flex items-center">
           <DiagramMenuBar
             documentTitle={currentProject ? currentProject.name : "Untitled"}
