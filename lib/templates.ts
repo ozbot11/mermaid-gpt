@@ -61,31 +61,15 @@ export const TEMPLATES: Record<ExampleTemplate, string> = {
       Fix
       Improve
       Generate`,
-  architecture: `flowchart TB
-  subgraph Client["Client tier"]
-    Web[Web App]
-  end
+  architecture: `architecture-beta
+group api(cloud)[API]
 
-  subgraph Gateway["Gateway"]
-    API[API Gateway]
-  end
+service db(database)[Database] in api
+service cache(disk)[Storage] in api
+service server(server)[Server] in api
 
-  subgraph Services["Application tier"]
-    Auth[Auth Service]
-    Core[Core Service]
-  end
-
-  subgraph Data["Data tier"]
-    DB[(Database)]
-    Cache[(Cache)]
-  end
-
-  Web --> API
-  API --> Auth
-  API --> Core
-  Auth --> DB
-  Core --> DB
-  Core --> Cache`,
+db:R -- L:server
+cache:T -- B:server`,
   gantt: `gantt
   title Project Timeline
   dateFormat YYYY-MM-DD
