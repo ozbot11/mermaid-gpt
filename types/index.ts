@@ -19,6 +19,7 @@ export interface Project {
   mermaidCode: string;
   createdAt: number;
   updatedAt: number;
+  description?: string;
 }
 
 export type ExampleTemplate =

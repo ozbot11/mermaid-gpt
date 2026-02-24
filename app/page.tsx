@@ -75,7 +75,7 @@ export default function Home() {
     const name = prompt("Rename diagram", p.name);
     if (name == null || name.trim() === p.name.trim()) return;
     try {
-      await saveProject({ id: p.id, name: name.trim(), mermaidCode: p.mermaidCode });
+      await saveProject({ id: p.id, name: name.trim(), mermaidCode: p.mermaidCode, description: p.description });
       refreshProjects();
     } catch {
       // ignore
@@ -86,7 +86,7 @@ export default function Home() {
     e.preventDefault();
     e.stopPropagation();
     try {
-      await saveProject({ name: `${p.name} (copy)`, mermaidCode: p.mermaidCode });
+      await saveProject({ name: `${p.name} (copy)`, mermaidCode: p.mermaidCode, description: p.description });
       refreshProjects();
     } catch {
       // ignore
@@ -127,13 +127,22 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen bg-surface-950">
       <header className="shrink-0 flex items-center justify-between py-3 px-6 border-b border-slate-700/60 bg-surface-900/95 backdrop-blur-sm">
-        <Link href="/" className="text-xl font-semibold text-slate-100 tracking-tight">
-          MermaidGPT
+        <Link href="/" className="flex items-baseline gap-2">
+          <span className="text-xl font-semibold text-slate-100 tracking-tight">MermaidGPT</span>
+          <span className="hidden sm:inline text-xs font-medium px-1.5 py-0.5 rounded-full bg-sky-500/10 text-sky-300 border border-sky-500/40">
+            AI Mermaid IDE
+          </span>
         </Link>
         <AuthButton />
       </header>
 
       <main className="flex-1 max-w-4xl mx-auto w-full py-8 px-6">
+        <section className="mb-8">
+          <h1 className="text-2xl sm:text-3xl font-semibold text-slate-100 mb-2">Design diagrams at the speed of thought.</h1>
+          <p className="text-sm text-slate-400 max-w-2xl">
+            MermaidGPT is a focused workspace for engineers to write Mermaid, preview diagrams, and use GPT to fix, improve, or generate architecture and flow diagrams.
+          </p>
+        </section>
         {isFirstVisit && (
           <div className="mb-6 rounded-xl border border-sky-700/50 bg-sky-950/40 px-4 py-3 flex items-start gap-3">
             <div className="mt-0.5 text-sky-400">
@@ -166,6 +175,39 @@ export default function Home() {
           </Link>
         </div>
 
+        <section className="mb-10 space-y-3">
+          <h2 className="text-sm font-medium text-slate-500 uppercase tracking-wider">Start from a template</h2>
+          <p className="text-xs text-slate-500 max-w-2xl">
+            Jump straight into common diagram types – you can always customize the Mermaid later.
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-1">
+            <Link href="/diagram?template=flowchart" className="rounded-lg border border-slate-700/60 bg-surface-900/80 hover:bg-surface-800/80 px-3 py-2 text-sm text-slate-200 transition-colors">
+              Flowchart
+              <span className="block text-[11px] text-slate-500">Processes & decisions</span>
+            </Link>
+            <Link href="/diagram?template=sequence" className="rounded-lg border border-slate-700/60 bg-surface-900/80 hover:bg-surface-800/80 px-3 py-2 text-sm text-slate-200 transition-colors">
+              Sequence
+              <span className="block text-[11px] text-slate-500">Requests & responses</span>
+            </Link>
+            <Link href="/diagram?template=architecture" className="rounded-lg border border-slate-700/60 bg-surface-900/80 hover:bg-surface-800/80 px-3 py-2 text-sm text-slate-200 transition-colors">
+              Architecture
+              <span className="block text-[11px] text-slate-500">Systems & services</span>
+            </Link>
+            <Link href="/diagram?template=state" className="rounded-lg border border-slate-700/60 bg-surface-900/80 hover:bg-surface-800/80 px-3 py-2 text-sm text-slate-200 transition-colors">
+              State machine
+              <span className="block text-[11px] text-slate-500">States & transitions</span>
+            </Link>
+            <Link href="/diagram?template=er" className="rounded-lg border border-slate-700/60 bg-surface-900/80 hover:bg-surface-800/80 px-3 py-2 text-sm text-slate-200 transition-colors">
+              ER diagram
+              <span className="block text-[11px] text-slate-500">Entities & relations</span>
+            </Link>
+            <Link href="/diagram?template=c4" className="rounded-lg border border-slate-700/60 bg-surface-900/80 hover:bg-surface-800/80 px-3 py-2 text-sm text-slate-200 transition-colors">
+              C4 context
+              <span className="block text-[11px] text-slate-500">System context</span>
+            </Link>
+          </div>
+        </section>
+
         <h2 className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-3">Recent diagrams</h2>
         {loading ? (
           <div className="flex items-center gap-2 text-slate-500">
@@ -196,6 +238,9 @@ export default function Home() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <span className="font-medium text-slate-100 block truncate">{p.name}</span>
+                    {p.description && (
+                      <span className="text-[11px] text-slate-400 block truncate">{p.description}</span>
+                    )}
                     <span className="text-xs text-slate-500">{formatDate(p.updatedAt)}</span>
                   </div>
                   <span className="text-slate-500 shrink-0" aria-hidden>
@@ -213,6 +258,16 @@ export default function Home() {
             ))}
           </ul>
         )}
+
+        <footer className="mt-10 border-t border-slate-800 pt-4 text-[11px] text-slate-500 flex flex-wrap items-center gap-3">
+          <span>Questions or ideas?</span>
+          <a
+            href="mailto:ozben+mermaidgpt@ozbenergin.com?subject=MermaidGPT%20feedback"
+            className="underline underline-offset-4 decoration-slate-600 hover:decoration-sky-500 hover:text-slate-300"
+          >
+            Send feedback
+          </a>
+        </footer>
       </main>
     </div>
   );

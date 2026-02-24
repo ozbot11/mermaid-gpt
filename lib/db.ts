@@ -62,12 +62,14 @@ export async function saveProject(project: {
   id?: number;
   name: string;
   mermaidCode: string;
+  description?: string;
 }): Promise<Project> {
   const db = await openDB();
   const now = Date.now();
   const record: Omit<Project, "id"> & { id?: number } = {
     name: project.name.trim() || "Untitled",
     mermaidCode: project.mermaidCode,
+    description: project.description?.trim() || undefined,
     createdAt: now,
     updatedAt: now,
   };
@@ -91,6 +93,7 @@ export async function saveProject(project: {
         id,
         name: record.name,
         mermaidCode: record.mermaidCode,
+        description: record.description,
         createdAt: record.createdAt,
         updatedAt: record.updatedAt,
       });

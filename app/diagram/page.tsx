@@ -9,6 +9,7 @@ import RendererPanel from "@/components/Renderer";
 import GPTPanel from "@/components/GPTPanel";
 import AuthButton from "@/components/AuthButton";
 import DiagramMenuBar from "@/components/DiagramMenuBar";
+import ShortcutsDialog from "@/components/ShortcutsDialog";
 import { DEFAULT_CODE, STORAGE_KEY } from "@/lib/constants";
 import { getProject, saveProject } from "@/lib/db";
 import { TEMPLATES, TEMPLATE_LABELS } from "@/lib/templates";
@@ -64,9 +65,11 @@ function DiagramPageContent() {
   const searchParams = useSearchParams();
   const projectId = searchParams.get("id");
   const templateKey = searchParams.get("template") as ExampleTemplate | null;
-  const [currentProject, setCurrentProject] = useState<{ id: number; name: string } | null>(null);
+  const shareParam = searchParams.get("share");
+  const [currentProject, setCurrentProject] = useState<{ id: number; name: string; description?: string } | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const [showDiagramTip, setShowDiagramTip] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -75,6 +78,24 @@ function DiagramPageContent() {
 
   useEffect(() => {
     const template = templateKey && TEMPLATES[templateKey] ? TEMPLATES[templateKey] : null;
+
+    if (shareParam) {
+      try {
+        const decoded = typeof window !== "undefined"
+          ? atob(decodeURIComponent(shareParam))
+          : "";
+        if (decoded) {
+          setMermaidCode(decoded);
+          setCurrentProject(null);
+          setIsDirty(false);
+          setHydrated(true);
+          return;
+        }
+      } catch {
+        // ignore bad share param and fall through
+      }
+    }
+
     if (projectId) {
       const numId = Number(projectId);
       if (Number.isInteger(numId)) {
@@ -82,7 +103,7 @@ function DiagramPageContent() {
           .then((p) => {
             if (p) {
               setMermaidCode(p.mermaidCode);
-              setCurrentProject({ id: p.id, name: p.name });
+              setCurrentProject({ id: p.id, name: p.name, description: p.description });
             }
             setIsDirty(false);
             setHydrated(true);
@@ -182,7 +203,9 @@ function DiagramPageContent() {
   const [copyLinkFeedback, setCopyLinkFeedback] = useState(false);
   const copyDiagramLink = useCallback(async () => {
     try {
-      const url = typeof window !== "undefined" ? window.location.href : "";
+      if (typeof window === "undefined") return;
+      const encoded = encodeURIComponent(btoa(mermaidCode));
+      const url = `${window.location.origin}/diagram?share=${encoded}`;
       await navigator.clipboard.writeText(url);
       setCopyLinkFeedback(true);
       setTimeout(() => setCopyLinkFeedback(false), 1500);
@@ -204,14 +227,32 @@ function DiagramPageContent() {
   const handleSaveCurrent = useCallback(() => {
     const name = typeof window !== "undefined" ? window.prompt("Save as", currentProject?.name || "Untitled") : null;
     if (name === null) return;
+    const desc = typeof window !== "undefined"
+      ? window.prompt("Description (optional)", currentProject?.description || "")
+      : null;
     setSaving(true);
-    saveProject({ name: name.trim() || "Untitled", mermaidCode })
+    saveProject({ name: name.trim() || "Untitled", mermaidCode, description: desc ?? currentProject?.description })
       .then((p) => {
-        setCurrentProject({ id: p.id, name: p.name });
+        setCurrentProject({ id: p.id, name: p.name, description: p.description });
         setIsDirty(false);
       })
       .finally(() => setSaving(false));
-  }, [mermaidCode, currentProject?.name]);
+  }, [mermaidCode, currentProject?.name, currentProject?.description]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        handleSaveCurrent();
+      }
+      if (e.key === "?" || (e.shiftKey && e.key === "/")) {
+        e.preventDefault();
+        setShowShortcuts((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [handleSaveCurrent]);
 
   const templateOptions = useMemo(
     () =>
@@ -355,9 +396,12 @@ function DiagramPageContent() {
             exportFeedback={exportFeedback}
             saveInProgress={saving}
             authButton={<AuthButton />}
+            onShowShortcuts={() => setShowShortcuts(true)}
           />
         </div>
       </header>
+
+      <ShortcutsDialog open={showShortcuts} onClose={() => setShowShortcuts(false)} />
 
       <main
         ref={mainRef}

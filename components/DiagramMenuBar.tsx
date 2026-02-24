@@ -35,9 +35,10 @@ export interface DiagramMenuBarProps {
   exportFeedback: "svg" | "png" | null;
   saveInProgress: boolean;
   authButton: React.ReactNode;
+  onShowShortcuts: () => void;
 }
 
-type MenuId = "file" | "edit" | "templates" | null;
+type MenuId = "file" | "edit" | "templates" | "help" | null;
 
 export default function DiagramMenuBar({
   documentTitle,
@@ -59,6 +60,7 @@ export default function DiagramMenuBar({
   exportFeedback,
   saveInProgress,
   authButton,
+  onShowShortcuts,
 }: DiagramMenuBarProps) {
   const [openMenu, setOpenMenu] = useState<MenuId>(null);
   const [burgerOpen, setBurgerOpen] = useState(false);
@@ -229,6 +231,18 @@ export default function DiagramMenuBar({
     </>
   );
 
+  const helpMenuContent = () => (
+    <>
+      <button
+        type="button"
+        onClick={() => { onShowShortcuts(); setOpenMenu(null); }}
+        className="w-full text-left px-3 py-2 text-slate-200 hover:bg-slate-800"
+      >
+        Keyboard shortcuts
+      </button>
+    </>
+  );
+
   return (
     <div ref={menuBarRef} className="flex items-center gap-1 flex-wrap">
       {/* Desktop: File / Edit / Templates */}
@@ -239,6 +253,8 @@ export default function DiagramMenuBar({
         {dropdown(editRef, "edit", editMenuContent())}
         <div ref={templatesRef}>{menuButton("templates", "Templates")}</div>
         {dropdown(templatesRef, "templates", templatesMenuContent())}
+        <div>{menuButton("help", "Help")}</div>
+        {dropdown(menuBarRef, "help", helpMenuContent())}
       </div>
 
       {/* Mobile: Burger */}
@@ -296,6 +312,15 @@ export default function DiagramMenuBar({
                     {opt.label}
                   </button>
                 ))}
+
+                <p className="px-2 py-1.5 text-xs font-medium text-slate-500 uppercase tracking-wider mt-4">Help</p>
+                <button
+                  type="button"
+                  onClick={() => { onShowShortcuts(); setBurgerOpen(false); }}
+                  className="w-full text-left px-3 py-2 text-slate-200 hover:bg-slate-800 rounded"
+                >
+                  Keyboard shortcuts
+                </button>
               </div>
             </div>
           </>
