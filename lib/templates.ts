@@ -62,17 +62,30 @@ export const TEMPLATES: Record<ExampleTemplate, string> = {
       Improve
       Generate`,
   architecture: `flowchart TB
-  subgraph Frontend
-    UI[Web App]
-    UI --> API
+  subgraph Client["Client tier"]
+    Web[Web App]
   end
-  subgraph Backend
-    API[API Server]
-    API --> DB[(Database)]
+
+  subgraph Gateway["Gateway"]
+    API[API Gateway]
   end
-  subgraph External
-    API --> GPT[OpenAI]
-  end`,
+
+  subgraph Services["Application tier"]
+    Auth[Auth Service]
+    Core[Core Service]
+  end
+
+  subgraph Data["Data tier"]
+    DB[(Database)]
+    Cache[(Cache)]
+  end
+
+  Web --> API
+  API --> Auth
+  API --> Core
+  Auth --> DB
+  Core --> DB
+  Core --> Cache`,
   gantt: `gantt
   title Project Timeline
   dateFormat YYYY-MM-DD
