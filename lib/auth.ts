@@ -1,9 +1,15 @@
 import type { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 
+/** If true, any signed-in user is allowed (public mode). */
+function isAllowAllMode(): boolean {
+  const raw = (process.env.ALLOWED_EMAILS ?? "").trim();
+  return raw === "" || raw === "*";
+}
+
 function getAllowedEmails(): Set<string> {
   const raw = process.env.ALLOWED_EMAILS ?? "";
-  if (!raw.trim()) return new Set();
+  if (!raw.trim() || raw.trim() === "*") return new Set();
   return new Set(
     raw
       .split(",")
@@ -14,6 +20,7 @@ function getAllowedEmails(): Set<string> {
 
 export function isEmailAllowed(email: string | null | undefined): boolean {
   if (!email) return false;
+  if (isAllowAllMode()) return true;
   return getAllowedEmails().has(email.trim().toLowerCase());
 }
 

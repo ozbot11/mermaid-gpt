@@ -80,8 +80,12 @@ In "explanation", briefly say what diagram you created and why. In "mermaid", ou
   const system = systemPrompts[mode];
   const userContent = `${userMessage}\n\nCurrent Mermaid code (if any):\n\`\`\`mermaid\n${currentMermaid}\n\`\`\``;
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 60_000); // 60s
+
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
+    signal: controller.signal,
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
@@ -98,7 +102,15 @@ In "explanation", briefly say what diagram you created and why. In "mermaid", ou
     }),
   });
 
+  clearTimeout(timeoutId);
+
   if (!res.ok) {
+    if (res.status === 429) {
+      throw new Error("OPENAI_RATE_LIMIT");
+    }
+    if (res.status >= 500) {
+      throw new Error("OPENAI_SERVER_ERROR");
+    }
     const err = await res.text();
     throw new Error(err || `OpenAI API error: ${res.status}`);
   }

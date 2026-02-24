@@ -9,7 +9,8 @@ A production-ready web IDE for engineers to write, edit, render, and AI-assist M
 - **GPT Assistant sidebar** (collapsible): fix syntax, improve structure, generate from description
 - Export as SVG, download as PNG, copy code, reset diagram
 - Example templates: Flowchart, Sequence, Class, State
-- **Sign in with Google** (NextAuth.js) + **allowlist**: only emails in `ALLOWED_EMAILS` can use the app (protects GPT usage during development)
+- **Sign in with Google** (NextAuth.js). Set `ALLOWED_EMAILS=*` (or leave empty) for public access; or list specific emails to restrict.
+- **Rate limiting**: 20 GPT requests per minute per user. **Input limits**: message max 4000 chars, diagram max 20000 chars.
 
 ## Tech Stack
 
@@ -71,11 +72,12 @@ npm start
 
 ```
 app/
-  page.tsx          # Main 3-panel layout and state
+  page.tsx            # Home: project list, new diagram
+  diagram/page.tsx     # Diagram editor (Monaco + preview + GPT)
   layout.tsx
-  globals.css
   api/auth/[...nextauth]/route.ts
-  api/gpt/route.ts   # Server-side OpenAI proxy
+  api/gpt/route.ts     # Server-side OpenAI proxy (rate-limited)
+  api/health/route.ts  # Health check for monitoring
 components/
   AuthButton.tsx     # Sign in with Google / Sign out
   Editor.tsx         # Monaco editor
@@ -83,8 +85,9 @@ components/
   Providers.tsx      # NextAuth SessionProvider
   Renderer.tsx       # Mermaid live renderer
 lib/
-  auth.ts            # NextAuth config (Google provider)
-  openai.ts          # OpenAI client (server-only)
+  auth.ts            # NextAuth config; isEmailAllowed (allowlist or public)
+  openai.ts          # OpenAI client (server-only, 60s timeout)
+  rateLimit.ts       # In-memory rate limiter for /api/gpt
   templates.ts       # Example Mermaid templates
 types/
   index.ts
@@ -92,4 +95,9 @@ types/
 
 ## Security
 
-The OpenAI API key is only used in `app/api/gpt/route.ts` and never sent to the client.
+- The OpenAI API key is only used server-side in `app/api/gpt/route.ts` and never sent to the client.
+- GPT requests are rate-limited (20/minute/user) and input lengths are capped to control cost and abuse.
+
+## Health
+
+- `GET /api/health` returns `{ ok: true, openaiConfigured: boolean }` for monitoring (e.g. uptime checks).

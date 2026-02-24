@@ -8,9 +8,9 @@ import EditorPanel from "@/components/Editor";
 import RendererPanel from "@/components/Renderer";
 import GPTPanel from "@/components/GPTPanel";
 import AuthButton from "@/components/AuthButton";
-import ProjectsDropdown from "@/components/ProjectsDropdown";
+import DiagramMenuBar from "@/components/DiagramMenuBar";
 import { DEFAULT_CODE, STORAGE_KEY } from "@/lib/constants";
-import { getProject } from "@/lib/db";
+import { getProject, saveProject } from "@/lib/db";
 import { TEMPLATES, TEMPLATE_LABELS } from "@/lib/templates";
 import type { ExampleTemplate } from "@/types";
 
@@ -55,6 +55,7 @@ function DiagramPageContent() {
   const [gptCollapsed, setGptCollapsed] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [exportFeedback, setExportFeedback] = useState<"svg" | "png" | null>(null);
+  const [saving, setSaving] = useState(false);
   const [panelSizes, setPanelSizes] = useState({ editor: 40, renderer: 40, gpt: 20 });
   const [resizing, setResizing] = useState<"left" | "right" | null>(null);
   const mainRef = useRef<HTMLDivElement>(null);
@@ -200,6 +201,18 @@ function DiagramPageContent() {
     setIsDirty(true);
   }, []);
 
+  const handleSaveCurrent = useCallback(() => {
+    const name = typeof window !== "undefined" ? window.prompt("Save as", currentProject?.name || "Untitled") : null;
+    if (name === null) return;
+    setSaving(true);
+    saveProject({ name: name.trim() || "Untitled", mermaidCode })
+      .then((p) => {
+        setCurrentProject({ id: p.id, name: p.name });
+        setIsDirty(false);
+      })
+      .finally(() => setSaving(false));
+  }, [mermaidCode, currentProject?.name]);
+
   const templateOptions = useMemo(
     () =>
       (Object.keys(TEMPLATES) as ExampleTemplate[]).map((key) => ({
@@ -305,99 +318,48 @@ function DiagramPageContent() {
           <button type="button" onClick={dismissDiagramTip} className="shrink-0 text-slate-500 hover:text-slate-300" aria-label="Dismiss tip">×</button>
         </div>
       )}
-      <header className="shrink-0 flex flex-wrap items-center gap-2 py-2.5 px-4 border-b border-slate-700/60 bg-surface-900/95 backdrop-blur-sm transition-colors">
+      <header className="shrink-0 flex items-center gap-2 py-2 px-3 md:px-4 border-b border-slate-700/60 bg-surface-900/95 backdrop-blur-sm transition-colors">
         <Link
           href="/"
-          className="text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1.5"
+          className="shrink-0 text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1.5"
           title="Back to home"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
           </svg>
-          <span className="text-sm font-medium">Home</span>
+          <span className="text-sm font-medium hidden sm:inline">Home</span>
         </Link>
-        <div className="h-5 w-px bg-slate-600" aria-hidden />
-        <h1 className="text-lg font-semibold text-slate-100 mr-2 tracking-tight">MermaidGPT</h1>
-        <span className="text-slate-500 text-sm truncate max-w-[120px] sm:max-w-[200px]" title={currentProject ? currentProject.name : "Untitled"}>
-          {currentProject ? currentProject.name : "Untitled"}
-          {isDirty && <span className="text-amber-400 ml-1" title="Unsaved changes">•</span>}
-        </span>
-        <div className="h-5 w-px bg-slate-600" aria-hidden />
-        <select
-          aria-label="Load example template"
-          className="px-2.5 py-1.5 text-sm rounded-md bg-surface-800 border border-slate-600 text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/50"
-          value=""
-          onChange={(e) => {
-            const v = e.target.value as ExampleTemplate;
-            if (v) applyTemplate(v);
-            e.target.value = "";
-          }}
-        >
-          <option value="">Templates</option>
-          {templateOptions.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-        <ProjectsDropdown
-          mermaidCode={mermaidCode}
-          onLoadProject={(code, project) => {
-            setMermaidCode(code);
-            setCurrentProject(project ? { id: project.id, name: project.name } : null);
-            setIsDirty(false);
-          }}
-          onNewProject={() => {
-            setMermaidCode(DEFAULT_CODE);
-            setCurrentProject(null);
-            setIsDirty(false);
-          }}
-        />
-        <button
-          type="button"
-          onClick={copyCode}
-          className="px-2.5 py-1.5 text-sm rounded-md bg-slate-700/80 hover:bg-slate-600 text-slate-200 transition-colors"
-          title="Copy Mermaid code"
-        >
-          {copyFeedback ? "Copied!" : "Copy code"}
-        </button>
-        <button
-          type="button"
-          onClick={copyDiagramLink}
-          className="px-2.5 py-1.5 text-sm rounded-md bg-slate-700/80 hover:bg-slate-600 text-slate-200 transition-colors"
-          title="Copy diagram link"
-        >
-          {copyLinkFeedback ? "Copied!" : "Copy link"}
-        </button>
-        <button
-          type="button"
-          onClick={resetDiagram}
-          className="px-2.5 py-1.5 text-sm rounded-md bg-slate-700/80 hover:bg-slate-600 text-slate-200 transition-colors"
-          title="Reset diagram"
-        >
-          Reset
-        </button>
-        <div className="h-5 w-px bg-slate-600" aria-hidden />
-        <button
-          type="button"
-          onClick={exportSvg}
-          disabled={!svgForExport}
-          className="px-2.5 py-1.5 text-sm rounded-md bg-slate-700/80 hover:bg-slate-600 text-slate-200 disabled:opacity-50 transition-colors"
-          title="Export as SVG"
-        >
-          {exportFeedback === "svg" ? "Saved!" : "SVG"}
-        </button>
-        <button
-          type="button"
-          onClick={exportPng}
-          disabled={!svgForExport}
-          className="px-2.5 py-1.5 text-sm rounded-md bg-slate-700/80 hover:bg-slate-600 text-slate-200 disabled:opacity-50 transition-colors"
-          title="Download as PNG"
-        >
-          {exportFeedback === "png" ? "Saved!" : "PNG"}
-        </button>
-        <div className="ml-auto">
-          <AuthButton />
+        <h1 className="text-lg font-semibold text-slate-100 tracking-tight shrink-0">MermaidGPT</h1>
+        <div className="flex-1 min-w-0 flex items-center">
+          <DiagramMenuBar
+            documentTitle={currentProject ? currentProject.name : "Untitled"}
+            isDirty={isDirty}
+            mermaidCode={mermaidCode}
+            hasSvgForExport={Boolean(svgForExport)}
+            onNew={() => {
+              setMermaidCode(DEFAULT_CODE);
+              setCurrentProject(null);
+              setIsDirty(false);
+            }}
+            onLoadProject={(code, project) => {
+              setMermaidCode(code);
+              setCurrentProject(project ? { id: project.id, name: project.name } : null);
+              setIsDirty(false);
+            }}
+            onSaveCurrent={handleSaveCurrent}
+            onExportSvg={exportSvg}
+            onExportPng={exportPng}
+            onCopyLink={copyDiagramLink}
+            onCopyCode={copyCode}
+            onReset={resetDiagram}
+            onApplyTemplate={applyTemplate}
+            templateOptions={templateOptions}
+            copyCodeFeedback={copyFeedback}
+            copyLinkFeedback={copyLinkFeedback}
+            exportFeedback={exportFeedback}
+            saveInProgress={saving}
+            authButton={<AuthButton />}
+          />
         </div>
       </header>
 

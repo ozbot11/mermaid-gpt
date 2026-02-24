@@ -277,6 +277,7 @@ export default function GPTPanel({
             onKeyDown={handleKeyDown}
             placeholder="Ask about your diagram… (Enter to send, Shift+Enter for new line)"
             rows={2}
+            maxLength={4000}
             className="flex-1 min-w-0 px-3 py-2 rounded-md bg-surface-800 border border-slate-600 text-slate-200 placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500/50 resize-none transition-shadow"
           />
           <button
@@ -288,6 +289,9 @@ export default function GPTPanel({
             Send
           </button>
         </div>
+        <p className="mt-1.5 px-0.5 text-[10px] text-slate-500">
+          Your message and diagram are sent to OpenAI to generate responses. We don&apos;t store them on our servers.
+        </p>
       </div>
     </div>
   );
