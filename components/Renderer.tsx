@@ -64,6 +64,7 @@ export default function RendererPanel({ code, onSvgReady }: RendererPanelProps) 
   }, [onSvgReady]);
 
   useEffect(() => {
+    setError(null);
     if (timerRef.current) clearTimeout(timerRef.current);
     const hasCode = code.trim().length > 0;
     if (hasCode) setLoading(true);

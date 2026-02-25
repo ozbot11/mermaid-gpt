@@ -126,3 +126,55 @@ In "explanation", briefly say what diagram you created and why. In "mermaid", ou
     mermaid: stripMermaidFences(mermaidRaw),
   };
 }
+
+const INLINE_SYSTEM = `You are an expert in Mermaid diagram syntax. Complete the next part of the Mermaid diagram the user is typing.
+Rules:
+- Return ONLY the completion text to insert after the cursor. Do not repeat the prefix.
+- Output valid Mermaid only (flowchart, sequenceDiagram, classDiagram, stateDiagram, etc.).
+- Prefer a single line or short clause (e.g. one more node, arrow, or keyword). Do not output long blocks unless the prefix clearly starts one.
+- No markdown, no explanation, no code fences.`;
+
+export async function getInlineCompletion(prefix: string, suffix: string): Promise<string> {
+  const trimmedPrefix = prefix.trimEnd();
+  if (trimmedPrefix.length < 3) return "";
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8_000);
+
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    signal: controller.signal,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: INLINE_SYSTEM },
+        {
+          role: "user",
+          content: `Complete the following Mermaid diagram. Return only the text to insert after the cursor, nothing else.\n\nPrefix (what the user already typed):\n${trimmedPrefix}\n\nSuffix (what comes after cursor, for context):\n${suffix.slice(0, 200)}`,
+        },
+      ],
+      temperature: 0.2,
+      max_tokens: 150,
+    }),
+  });
+
+  clearTimeout(timeoutId);
+
+  if (!res.ok) {
+    if (res.status === 429) throw new Error("OPENAI_RATE_LIMIT");
+    if (res.status >= 500) throw new Error("OPENAI_SERVER_ERROR");
+    const err = await res.text();
+    throw new Error(err || `OpenAI API error: ${res.status}`);
+  }
+
+  const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+  const raw = data.choices?.[0]?.message?.content;
+  if (!raw) return "";
+
+  const text = raw.trim();
+  return text.replace(/^```\w*\n?|```\s*$/g, "").trim();
+}

@@ -1,7 +1,10 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import Editor, { OnMount } from "@monaco-editor/react";
+
+const INLINE_DEBOUNCE_MS = 500;
+const MIN_PREFIX_LENGTH = 10;
 
 interface EditorPanelProps {
   value: string;
@@ -9,6 +12,8 @@ interface EditorPanelProps {
 }
 
 export default function EditorPanel({ value, onChange }: EditorPanelProps) {
+  const completionAbortRef = useRef<AbortController | null>(null);
+
   const handleChange = useCallback(
     (val: string | undefined) => {
       onChange(val ?? "");
@@ -82,6 +87,71 @@ export default function EditorPanel({ value, onChange }: EditorPanelProps) {
         return { suggestions };
       },
     });
+
+    monaco.languages.registerInlineCompletionsProvider("markdown", {
+      provideInlineCompletions: async (model, position, _context, token) => {
+        const lineCount = model.getLineCount();
+        const endLine = lineCount;
+        const endColumn = model.getLineMaxColumn(endLine);
+        const prefix = model.getValueInRange({
+          startLineNumber: 1,
+          startColumn: 1,
+          endLineNumber: position.lineNumber,
+          endColumn: position.column,
+        });
+        const suffix = model.getValueInRange({
+          startLineNumber: position.lineNumber,
+          startColumn: position.column,
+          endLineNumber: endLine,
+          endColumn,
+        });
+        if (prefix.length < MIN_PREFIX_LENGTH) {
+          return { items: [] };
+        }
+
+        await new Promise((r) => setTimeout(r, INLINE_DEBOUNCE_MS));
+        if (token.isCancellationRequested) return { items: [] };
+
+        if (completionAbortRef.current) {
+          completionAbortRef.current.abort();
+        }
+        completionAbortRef.current = new AbortController();
+        const signal = completionAbortRef.current.signal;
+
+        try {
+          const res = await fetch("/api/complete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            signal,
+            body: JSON.stringify({ prefix, suffix }),
+          });
+          if (token.isCancellationRequested) return { items: [] };
+          if (!res.ok) return { items: [] };
+          const data = (await res.json()) as { completion?: string };
+          const text = typeof data.completion === "string" ? data.completion.trim() : "";
+          if (!text || token.isCancellationRequested) return { items: [] };
+          return {
+            items: [
+              {
+                insertText: text,
+                range: {
+                  startLineNumber: position.lineNumber,
+                  startColumn: position.column,
+                  endLineNumber: position.lineNumber,
+                  endColumn: position.column,
+                },
+              },
+            ],
+          };
+        } catch {
+          return { items: [] };
+        } finally {
+          completionAbortRef.current = null;
+        }
+      },
+      freeThreading: true,
+    });
   };
 
   return (
@@ -111,6 +181,7 @@ export default function EditorPanel({ value, onChange }: EditorPanelProps) {
           cursorSmoothCaretAnimation: "on",
           bracketPairColorization: { enabled: true },
           renderLineHighlight: "line",
+          inlineSuggest: { enabled: true },
           scrollbar: {
             verticalScrollbarSize: 8,
             horizontalScrollbarSize: 8,
