@@ -32,6 +32,7 @@ export default function RendererPanel({ code, onSvgReady }: RendererPanelProps) 
   const [scale, setScale] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
+  const [hovering, setHovering] = useState(false);
   const panStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -175,7 +176,7 @@ export default function RendererPanel({ code, onSvgReady }: RendererPanelProps) 
   }, [error, loading, svg, scale, pan]);
 
   return (
-    <div className="h-full min-h-[300px] rounded-lg border border-slate-700/50 bg-surface-900 overflow-hidden flex flex-col">
+    <div className="h-full min-h-[300px] rounded-lg border border-slate-700/50 bg-surface-900 overflow-hidden flex flex-col relative">
       {svg && !error && (
         <div className="shrink-0 flex items-center justify-end gap-1 py-1.5 px-2 border-b border-slate-700/50 bg-surface-900/80">
           <button
@@ -212,10 +213,17 @@ export default function RendererPanel({ code, onSvgReady }: RendererPanelProps) 
         className={`flex-1 overflow-hidden min-h-0 ${svg && !error ? (isPanning ? "cursor-grabbing" : "cursor-grab") : ""}`}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
+        onMouseEnter={() => setHovering(true)}
+        onMouseLeave={() => setHovering(false)}
         style={{ touchAction: "none" }}
       >
         {content}
       </div>
+      {svg && !error && hovering && (
+        <div className="pointer-events-none absolute bottom-2 left-2 max-w-xs rounded-md bg-slate-900/90 border border-slate-700/70 px-2 py-1 text-[11px] text-slate-300 shadow-lg">
+          Hover diagram nodes to see Mermaid tooltips. Scroll to zoom and drag to pan the view.
+        </div>
+      )}
     </div>
   );
 }

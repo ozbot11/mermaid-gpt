@@ -181,27 +181,51 @@ export default function Home() {
             Jump straight into common diagram types – you can always customize the Mermaid later.
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-1">
-            <Link href="/diagram?template=flowchart" className="rounded-lg border border-slate-700/60 bg-surface-900/80 hover:bg-surface-800/80 px-3 py-2 text-sm text-slate-200 transition-colors">
+            <Link
+              href="/diagram?template=flowchart"
+              title="Flowchart: processes, decisions, and branching flows"
+              className="rounded-lg border border-slate-700/60 bg-surface-900/80 hover:bg-surface-800/80 px-3 py-2 text-sm text-slate-200 transition-colors"
+            >
               Flowchart
               <span className="block text-[11px] text-slate-500">Processes & decisions</span>
             </Link>
-            <Link href="/diagram?template=sequence" className="rounded-lg border border-slate-700/60 bg-surface-900/80 hover:bg-surface-800/80 px-3 py-2 text-sm text-slate-200 transition-colors">
+            <Link
+              href="/diagram?template=sequence"
+              title="Sequence: interactions between participants over time"
+              className="rounded-lg border border-slate-700/60 bg-surface-900/80 hover:bg-surface-800/80 px-3 py-2 text-sm text-slate-200 transition-colors"
+            >
               Sequence
               <span className="block text-[11px] text-slate-500">Requests & responses</span>
             </Link>
-            <Link href="/diagram?template=architecture" className="rounded-lg border border-slate-700/60 bg-surface-900/80 hover:bg-surface-800/80 px-3 py-2 text-sm text-slate-200 transition-colors">
+            <Link
+              href="/diagram?template=architecture"
+              title="Architecture: systems, services, and infrastructure"
+              className="rounded-lg border border-slate-700/60 bg-surface-900/80 hover:bg-surface-800/80 px-3 py-2 text-sm text-slate-200 transition-colors"
+            >
               Architecture
               <span className="block text-[11px] text-slate-500">Systems & services</span>
             </Link>
-            <Link href="/diagram?template=state" className="rounded-lg border border-slate-700/60 bg-surface-900/80 hover:bg-surface-800/80 px-3 py-2 text-sm text-slate-200 transition-colors">
+            <Link
+              href="/diagram?template=state"
+              title="State machine: states, transitions, and events"
+              className="rounded-lg border border-slate-700/60 bg-surface-900/80 hover:bg-surface-800/80 px-3 py-2 text-sm text-slate-200 transition-colors"
+            >
               State machine
               <span className="block text-[11px] text-slate-500">States & transitions</span>
             </Link>
-            <Link href="/diagram?template=er" className="rounded-lg border border-slate-700/60 bg-surface-900/80 hover:bg-surface-800/80 px-3 py-2 text-sm text-slate-200 transition-colors">
+            <Link
+              href="/diagram?template=er"
+              title="Entity-relationship: tables, entities, and their relations"
+              className="rounded-lg border border-slate-700/60 bg-surface-900/80 hover:bg-surface-800/80 px-3 py-2 text-sm text-slate-200 transition-colors"
+            >
               ER diagram
               <span className="block text-[11px] text-slate-500">Entities & relations</span>
             </Link>
-            <Link href="/diagram?template=c4" className="rounded-lg border border-slate-700/60 bg-surface-900/80 hover:bg-surface-800/80 px-3 py-2 text-sm text-slate-200 transition-colors">
+            <Link
+              href="/diagram?template=c4"
+              title="C4 context: high-level system context and external actors"
+              className="rounded-lg border border-slate-700/60 bg-surface-900/80 hover:bg-surface-800/80 px-3 py-2 text-sm text-slate-200 transition-colors"
+            >
               C4 context
               <span className="block text-[11px] text-slate-500">System context</span>
             </Link>

@@ -125,6 +125,7 @@ export default function DiagramMenuBar({
       className="px-3 py-1.5 text-sm font-medium text-slate-200 hover:bg-slate-700/60 rounded focus:outline-none focus:ring-2 focus:ring-sky-500/50"
       aria-expanded={openMenu === id}
       aria-haspopup="true"
+      title={label}
     >
       {label}
     </button>
