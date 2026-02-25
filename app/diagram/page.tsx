@@ -430,7 +430,7 @@ function DiagramPageContent() {
         >
           MermaidGPT
         </Link>
-        <div className="flex-1 min-w-0 flex items-center">
+        <div className="flex-1 min-w-0 flex items-center" data-tutorial-target="menu">
           <DiagramMenuBar
             documentTitle={currentProject ? currentProject.name : "Untitled"}
             isDirty={isDirty}
@@ -490,7 +490,7 @@ function DiagramPageContent() {
           } as React.CSSProperties
         }
       >
-        <section className="min-h-0 flex flex-col flex-1 min-w-0 w-full lg:w-[var(--editor-pct)] lg:max-w-[var(--editor-pct)]" aria-label="Editor">
+        <section className="min-h-0 flex flex-col flex-1 min-w-0 w-full lg:w-[var(--editor-pct)] lg:max-w-[var(--editor-pct)]" aria-label="Editor" data-tutorial-target="editor">
           <div className="flex items-center justify-between mb-1.5 px-0.5">
             <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Editor</span>
           </div>
@@ -499,7 +499,7 @@ function DiagramPageContent() {
           </div>
         </section>
         <div className="hidden lg:block shrink-0 w-[var(--resizer-w)] min-w-[var(--resizer-w)] cursor-col-resize border-l border-r border-slate-700/50 bg-slate-800/30 hover:bg-sky-500/20 transition-colors" onMouseDown={(e) => e.button === 0 && setResizing("left")} aria-label="Resize editor and preview" role="separator" />
-        <section className="min-h-0 flex flex-col flex-1 min-w-0 w-full lg:w-[var(--renderer-pct)] lg:max-w-[var(--renderer-pct)]" aria-label="Preview">
+        <section className="min-h-0 flex flex-col flex-1 min-w-0 w-full lg:w-[var(--renderer-pct)] lg:max-w-[var(--renderer-pct)]" aria-label="Preview" data-tutorial-target="preview">
           <div className="flex items-center justify-between mb-1.5 px-0.5">
             <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Preview</span>
           </div>
@@ -508,7 +508,7 @@ function DiagramPageContent() {
           </div>
         </section>
         <div className="hidden lg:block shrink-0 w-[var(--resizer-w)] min-w-[var(--resizer-w)] cursor-col-resize border-l border-r border-slate-700/50 bg-slate-800/30 hover:bg-sky-500/20 transition-colors" onMouseDown={(e) => e.button === 0 && setResizing("right")} aria-label="Resize preview and GPT" role="separator" />
-        <aside className="min-w-0 min-h-[200px] flex flex-col flex-1 min-w-0 w-full lg:w-[var(--gpt-pct)] lg:max-w-[var(--gpt-pct)]" aria-label="GPT Assistant">
+        <aside className="min-w-0 min-h-[200px] flex flex-col flex-1 min-w-0 w-full lg:w-[var(--gpt-pct)] lg:max-w-[var(--gpt-pct)]" aria-label="GPT Assistant" data-tutorial-target="gpt">
           <GPTPanel
             currentMermaid={mermaidCode}
             getCurrentMermaid={() => mermaidCodeRef.current}
