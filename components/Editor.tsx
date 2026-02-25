@@ -6,6 +6,25 @@ import Editor, { OnMount } from "@monaco-editor/react";
 const INLINE_DEBOUNCE_MS = 500;
 const MIN_PREFIX_LENGTH = 10;
 
+/** Minimal types for Monaco inline completions callback (avoids monaco namespace in type position). */
+interface InlineCompletionModel {
+  getLineCount(): number;
+  getLineMaxColumn(lineNumber: number): number;
+  getValueInRange(range: {
+    startLineNumber: number;
+    startColumn: number;
+    endLineNumber: number;
+    endColumn: number;
+  }): string;
+}
+interface InlineCompletionPosition {
+  lineNumber: number;
+  column: number;
+}
+interface InlineCompletionToken {
+  isCancellationRequested: boolean;
+}
+
 interface EditorPanelProps {
   value: string;
   onChange: (value: string) => void;
@@ -89,7 +108,12 @@ export default function EditorPanel({ value, onChange }: EditorPanelProps) {
     });
 
     monaco.languages.registerInlineCompletionsProvider("markdown", {
-      provideInlineCompletions: async (model, position, _context, token) => {
+      provideInlineCompletions: async (
+        model: InlineCompletionModel,
+        position: InlineCompletionPosition,
+        _context: unknown,
+        token: InlineCompletionToken
+      ) => {
         const lineCount = model.getLineCount();
         const endLine = lineCount;
         const endColumn = model.getLineMaxColumn(endLine);
