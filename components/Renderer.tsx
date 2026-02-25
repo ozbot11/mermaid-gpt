@@ -27,7 +27,6 @@ interface RendererPanelProps {
 export default function RendererPanel({ code, onSvgReady }: RendererPanelProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [svg, setSvg] = useState<string>("");
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [scale, setScale] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -41,13 +40,11 @@ export default function RendererPanel({ code, onSvgReady }: RendererPanelProps) 
     const trimmed = input.trim();
     if (!trimmed) {
       setSvg("");
-      setError(null);
       setLoading(false);
       return;
     }
 
     setLoading(true);
-    setError(null);
     try {
       const { svg: out } = await mermaid.render(
         `mermaid-${Date.now()}`,
@@ -55,16 +52,14 @@ export default function RendererPanel({ code, onSvgReady }: RendererPanelProps) 
       );
       setSvg(out);
       onSvgReady?.(out);
-    } catch (err) {
+    } catch {
       setSvg("");
-      setError(err instanceof Error ? err.message : "Failed to render diagram");
     } finally {
       setLoading(false);
     }
   }, [onSvgReady]);
 
   useEffect(() => {
-    setError(null);
     if (timerRef.current) clearTimeout(timerRef.current);
     const hasCode = code.trim().length > 0;
     if (hasCode) setLoading(true);
@@ -81,7 +76,7 @@ export default function RendererPanel({ code, onSvgReady }: RendererPanelProps) 
 
   const handleWheel = useCallback(
     (e: React.WheelEvent) => {
-      if (!svg || error) return;
+      if (!svg) return;
       e.preventDefault();
       const delta = -e.deltaY * ZOOM_SENSITIVITY;
       const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale * (1 + delta)));
@@ -98,18 +93,18 @@ export default function RendererPanel({ code, onSvgReady }: RendererPanelProps) 
       }
       setScale(newScale);
     },
-    [scale, svg, error]
+    [scale, svg]
   );
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
-      if (!svg || error) return;
+      if (!svg) return;
       if (e.button !== 0) return;
       e.preventDefault();
       setIsPanning(true);
       panStartRef.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y };
     },
-    [pan, svg, error]
+    [pan, svg]
   );
 
   const handleMouseMove = useCallback(
@@ -143,18 +138,11 @@ export default function RendererPanel({ code, onSvgReady }: RendererPanelProps) 
   }, []);
 
   const content = useMemo(() => {
-    if (loading && !svg && !error) {
+    if (loading && !svg) {
       return (
         <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-slate-500">
           <div className="w-6 h-6 border-2 border-slate-600 border-t-sky-500 rounded-full animate-spin mb-2" />
           <span className="text-xs">Rendering…</span>
-        </div>
-      );
-    }
-    if (error) {
-      return (
-        <div className="p-4 rounded-lg bg-red-950/50 border border-red-800/60 text-red-200 text-sm font-mono whitespace-pre-wrap">
-          {error}
         </div>
       );
     }
@@ -174,11 +162,11 @@ export default function RendererPanel({ code, onSvgReady }: RendererPanelProps) 
         dangerouslySetInnerHTML={{ __html: svg }}
       />
     );
-  }, [error, loading, svg, scale, pan]);
+  }, [loading, svg, scale, pan]);
 
   return (
     <div className="h-full min-h-[300px] rounded-lg border border-slate-700/50 bg-surface-900 overflow-hidden flex flex-col relative">
-      {svg && !error && (
+      {svg && (
         <div className="shrink-0 flex items-center justify-end gap-1 py-1.5 px-2 border-b border-slate-700/50 bg-surface-900/80">
           <button
             type="button"
@@ -211,7 +199,7 @@ export default function RendererPanel({ code, onSvgReady }: RendererPanelProps) 
       )}
       <div
         ref={viewportRef}
-        className={`flex-1 overflow-hidden min-h-0 ${svg && !error ? (isPanning ? "cursor-grabbing" : "cursor-grab") : ""}`}
+        className={`flex-1 overflow-hidden min-h-0 ${svg ? (isPanning ? "cursor-grabbing" : "cursor-grab") : ""}`}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseEnter={() => setHovering(true)}
@@ -220,7 +208,7 @@ export default function RendererPanel({ code, onSvgReady }: RendererPanelProps) 
       >
         {content}
       </div>
-      {svg && !error && hovering && (
+      {svg && hovering && (
         <div className="pointer-events-none absolute bottom-2 left-2 max-w-xs rounded-md bg-slate-900/90 border border-slate-700/70 px-2 py-1 text-[11px] text-slate-300 shadow-lg">
           Hover diagram nodes to see Mermaid tooltips. Scroll to zoom and drag to pan the view.
         </div>
