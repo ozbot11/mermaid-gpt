@@ -10,6 +10,7 @@ import GPTPanel from "@/components/GPTPanel";
 import AuthButton from "@/components/AuthButton";
 import DiagramMenuBar from "@/components/DiagramMenuBar";
 import ShortcutsDialog from "@/components/ShortcutsDialog";
+import ShareDialog from "@/components/ShareDialog";
 import TutorialOverlay from "@/components/TutorialOverlay";
 import { DEFAULT_CODE, STORAGE_KEY } from "@/lib/constants";
 import { getProject, saveProject } from "@/lib/db";
@@ -72,6 +73,7 @@ function DiagramPageContent() {
   const [isDirty, setIsDirty] = useState(false);
   const [showDiagramTip, setShowDiagramTip] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(0);
 
@@ -452,6 +454,7 @@ function DiagramPageContent() {
             onExportSvg={exportSvg}
             onExportPng={exportPng}
             onCopyLink={copyDiagramLink}
+            onShare={() => setShowShareDialog(true)}
             onCopyCode={copyCode}
             onReset={resetDiagram}
             onApplyTemplate={applyTemplate}
@@ -468,6 +471,16 @@ function DiagramPageContent() {
       </header>
 
       <ShortcutsDialog open={showShortcuts} onClose={() => setShowShortcuts(false)} />
+
+      <ShareDialog
+        open={showShareDialog}
+        onClose={() => setShowShareDialog(false)}
+        shareUrl={
+          typeof window !== "undefined"
+            ? `${window.location.origin}/diagram?share=${encodeURIComponent(btoa(mermaidCode))}`
+            : ""
+        }
+      />
 
       <TutorialOverlay
         open={showTutorial}

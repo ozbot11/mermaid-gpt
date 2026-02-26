@@ -26,6 +26,7 @@ export interface DiagramMenuBarProps {
   onExportSvg: () => void;
   onExportPng: () => void;
   onCopyLink: () => void;
+  onShare: () => void;
   onCopyCode: () => void;
   onReset: () => void;
   onApplyTemplate: (key: ExampleTemplate) => void;
@@ -52,6 +53,7 @@ export default function DiagramMenuBar({
   onExportSvg,
   onExportPng,
   onCopyLink,
+  onShare,
   onCopyCode,
   onReset,
   onApplyTemplate,
@@ -201,6 +203,9 @@ export default function DiagramMenuBar({
       <button type="button" onClick={() => { onCopyLink(); setOpenMenu(null); }} className="w-full text-left px-3 py-2 text-slate-200 hover:bg-slate-800">
         {copyLinkFeedback ? "Link copied!" : "Copy link"}
       </button>
+      <button type="button" onClick={() => { onShare(); setOpenMenu(null); }} className="w-full text-left px-3 py-2 text-slate-200 hover:bg-slate-800">
+        Share…
+      </button>
       <div className="my-1 border-t border-slate-700/50" />
       <Link href="/" className="block px-3 py-2 text-slate-200 hover:bg-slate-800" onClick={() => setOpenMenu(null)}>
         Back to home
@@ -309,6 +314,7 @@ export default function DiagramMenuBar({
                 <button type="button" onClick={() => { onExportSvg(); setBurgerOpen(false); }} disabled={!hasSvgForExport} className="w-full text-left px-3 py-2 text-slate-200 hover:bg-slate-800 rounded disabled:opacity-50">Export as SVG</button>
                 <button type="button" onClick={() => { onExportPng(); setBurgerOpen(false); }} disabled={!hasSvgForExport} className="w-full text-left px-3 py-2 text-slate-200 hover:bg-slate-800 rounded disabled:opacity-50">Export as PNG</button>
                 <button type="button" onClick={() => { onCopyLink(); setBurgerOpen(false); }} className="w-full text-left px-3 py-2 text-slate-200 hover:bg-slate-800 rounded">{copyLinkFeedback ? "Link copied!" : "Copy link"}</button>
+                <button type="button" onClick={() => { onShare(); setBurgerOpen(false); }} className="w-full text-left px-3 py-2 text-slate-200 hover:bg-slate-800 rounded">Share…</button>
                 <div className="border-t border-slate-700/50 my-2" />
                 <Link href="/" onClick={() => setBurgerOpen(false)} className="block px-3 py-2 text-slate-200 hover:bg-slate-800 rounded">Back to home</Link>
 
