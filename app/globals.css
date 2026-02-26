@@ -7,8 +7,63 @@
   --panel-bg: #0f172a;
 }
 
+html[data-theme="light"] {
+  --editor-bg: #ffffff;
+  --panel-bg: #f1f5f9;
+}
+
 body {
   @apply bg-surface-950 text-slate-200 antialiased;
+}
+
+/* Light theme overrides */
+html[data-theme="light"] body {
+  @apply bg-slate-100 text-slate-900;
+}
+
+html[data-theme="light"] .bg-surface-950 {
+  @apply bg-slate-100;
+}
+
+html[data-theme="light"] .bg-surface-900 {
+  @apply bg-slate-50;
+}
+
+html[data-theme="light"] .bg-surface-800 {
+  @apply bg-slate-200;
+}
+
+html[data-theme="light"] .text-slate-200,
+html[data-theme="light"] .text-slate-100 {
+  @apply text-slate-900;
+}
+
+html[data-theme="light"] .text-slate-400,
+html[data-theme="light"] .text-slate-500 {
+  @apply text-slate-600;
+}
+
+html[data-theme="light"] .border-slate-700,
+html[data-theme="light"] .border-slate-600 {
+  @apply border-slate-300;
+}
+
+html[data-theme="light"] .bg-slate-800\/80,
+html[data-theme="light"] .bg-slate-700\/80 {
+  @apply bg-slate-200/90;
+}
+
+html[data-theme="light"] .hover\:bg-slate-700:hover,
+html[data-theme="light"] .hover\:bg-slate-600:hover {
+  @apply hover:bg-slate-300;
+}
+
+html[data-theme="light"] .ring-offset-surface-900 {
+  @apply ring-offset-slate-100;
+}
+
+html[data-theme="light"] .editor-panel-bg {
+  background: var(--editor-bg);
 }
 
 /* Monaco overrides for dark theme */

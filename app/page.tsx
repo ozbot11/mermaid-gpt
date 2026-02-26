@@ -133,7 +133,12 @@ export default function Home() {
             AI Mermaid IDE
           </span>
         </Link>
-        <AuthButton />
+        <div className="flex items-center gap-3">
+          <Link href="/settings" className="text-sm text-slate-400 hover:text-slate-200 transition-colors">
+            Settings
+          </Link>
+          <AuthButton />
+        </div>
       </header>
 
       <main className="flex-1 max-w-4xl mx-auto w-full py-8 px-6">

@@ -8,23 +8,24 @@ const MIN_SCALE = 0.25;
 const MAX_SCALE = 3;
 const ZOOM_SENSITIVITY = 0.002;
 
-let mermaidInitialized = false;
-function ensureMermaidInit() {
-  if (mermaidInitialized) return;
+let mermaidLastTheme: "dark" | "light" | null = null;
+function ensureMermaidInit(theme: "dark" | "light") {
+  if (mermaidLastTheme === theme) return;
   mermaid.initialize({
     startOnLoad: false,
-    theme: "dark",
+    theme: theme === "light" ? "default" : "dark",
     securityLevel: "loose",
   });
-  mermaidInitialized = true;
+  mermaidLastTheme = theme;
 }
 
 interface RendererPanelProps {
   code: string;
+  theme?: "dark" | "light";
   onSvgReady?: (svg: string) => void;
 }
 
-export default function RendererPanel({ code, onSvgReady }: RendererPanelProps) {
+export default function RendererPanel({ code, theme = "dark", onSvgReady }: RendererPanelProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [svg, setSvg] = useState<string>("");
   const [loading, setLoading] = useState(false);
@@ -36,7 +37,7 @@ export default function RendererPanel({ code, onSvgReady }: RendererPanelProps) 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const render = useCallback(async (input: string) => {
-    ensureMermaidInit();
+    ensureMermaidInit(theme);
     const trimmed = input.trim();
     if (!trimmed) {
       setSvg("");
@@ -57,7 +58,7 @@ export default function RendererPanel({ code, onSvgReady }: RendererPanelProps) 
     } finally {
       setLoading(false);
     }
-  }, [onSvgReady]);
+  }, [onSvgReady, theme]);
 
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);

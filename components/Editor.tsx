@@ -28,9 +28,10 @@ interface InlineCompletionToken {
 interface EditorPanelProps {
   value: string;
   onChange: (value: string) => void;
+  theme?: "dark" | "light";
 }
 
-export default function EditorPanel({ value, onChange }: EditorPanelProps) {
+export default function EditorPanel({ value, onChange, theme = "dark" }: EditorPanelProps) {
   const completionAbortRef = useRef<AbortController | null>(null);
 
   const handleChange = useCallback(
@@ -179,7 +180,7 @@ export default function EditorPanel({ value, onChange }: EditorPanelProps) {
   };
 
   return (
-    <div className="h-full min-h-[300px] rounded-lg overflow-hidden border border-slate-700/50 bg-[#1e1e1e]">
+    <div className="h-full min-h-[300px] rounded-lg overflow-hidden border border-slate-700/50 bg-[#1e1e1e] editor-panel-bg">
       <Editor
         height="100%"
         defaultLanguage="markdown"
@@ -187,7 +188,7 @@ export default function EditorPanel({ value, onChange }: EditorPanelProps) {
         value={value}
         onChange={handleChange}
         onMount={handleMount}
-        theme="vs-dark"
+        theme={theme === "light" ? "light" : "vs-dark"}
         options={{
           minimap: { enabled: false },
           fontSize: 13,

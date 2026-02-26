@@ -13,6 +13,7 @@ import ShortcutsDialog from "@/components/ShortcutsDialog";
 import ShareDialog from "@/components/ShareDialog";
 import TutorialOverlay from "@/components/TutorialOverlay";
 import { DEFAULT_CODE, STORAGE_KEY } from "@/lib/constants";
+import { useTheme } from "@/lib/ThemeContext";
 import { getProject, saveProject } from "@/lib/db";
 import { TEMPLATES, TEMPLATE_LABELS } from "@/lib/templates";
 import type { ExampleTemplate } from "@/types";
@@ -76,6 +77,7 @@ function DiagramPageContent() {
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(0);
+  const { theme } = useTheme();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -463,7 +465,14 @@ function DiagramPageContent() {
             copyLinkFeedback={copyLinkFeedback}
             exportFeedback={exportFeedback}
             saveInProgress={saving}
-            authButton={<AuthButton />}
+            authButton={
+              <div className="flex items-center gap-2">
+                <Link href="/settings" className="text-sm text-slate-400 hover:text-slate-200 transition-colors hidden sm:inline">
+                  Settings
+                </Link>
+                <AuthButton />
+              </div>
+            }
             onShowShortcuts={() => setShowShortcuts(true)}
             onStartTutorial={startTutorial}
           />
@@ -508,7 +517,7 @@ function DiagramPageContent() {
             <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Editor</span>
           </div>
           <div className="flex-1 min-h-[280px] rounded-lg overflow-hidden border border-slate-700/50 bg-[#1e1e1e] shadow-inner transition-shadow">
-            <EditorPanel value={mermaidCode} onChange={handleEditorChange} />
+            <EditorPanel value={mermaidCode} onChange={handleEditorChange} theme={theme} />
           </div>
         </section>
         <div className="hidden lg:block shrink-0 w-[var(--resizer-w)] min-w-[var(--resizer-w)] cursor-col-resize border-l border-r border-slate-700/50 bg-slate-800/30 hover:bg-sky-500/20 transition-colors" onMouseDown={(e) => e.button === 0 && setResizing("left")} aria-label="Resize editor and preview" role="separator" />
@@ -517,7 +526,7 @@ function DiagramPageContent() {
             <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Preview</span>
           </div>
           <div className="flex-1 min-h-[280px]">
-            <RendererPanel code={mermaidCode} onSvgReady={handleSvgReady} />
+            <RendererPanel code={mermaidCode} theme={theme} onSvgReady={handleSvgReady} />
           </div>
         </section>
         <div className="hidden lg:block shrink-0 w-[var(--resizer-w)] min-w-[var(--resizer-w)] cursor-col-resize border-l border-r border-slate-700/50 bg-slate-800/30 hover:bg-sky-500/20 transition-colors" onMouseDown={(e) => e.button === 0 && setResizing("right")} aria-label="Resize preview and GPT" role="separator" />
