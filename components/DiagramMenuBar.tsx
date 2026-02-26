@@ -259,7 +259,7 @@ export default function DiagramMenuBar({
   );
 
   return (
-    <div ref={menuBarRef} className="flex items-center gap-1 flex-wrap">
+    <div ref={menuBarRef} className="flex items-center gap-1 flex-wrap w-full min-w-0">
       {/* Desktop: File / Edit / Templates */}
       <div className="hidden md:flex items-center gap-0.5">
         <div ref={fileRef}>{menuButton("file", "File")}</div>
