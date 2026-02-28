@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getInlineCompletion } from "@/lib/openai";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { recordUsage } from "@/lib/usage";
 
 const MAX_PREFIX = 8_000;
 const MAX_SUFFIX = 2_000;
@@ -38,7 +39,10 @@ export async function POST(request: NextRequest) {
     const prefix = typeof body.prefix === "string" ? body.prefix.slice(0, MAX_PREFIX) : "";
     const suffix = typeof body.suffix === "string" ? body.suffix.slice(0, MAX_SUFFIX) : "";
 
-    const completion = await getInlineCompletion(prefix, suffix);
+    const { completion, usage } = await getInlineCompletion(prefix, suffix);
+    if (usage && session.user.email) {
+      recordUsage(session.user.email, usage, "complete");
+    }
     return NextResponse.json({ completion });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";

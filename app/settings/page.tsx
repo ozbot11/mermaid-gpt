@@ -1,14 +1,47 @@
 "use client";
 
+import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
 import AuthButton from "@/components/AuthButton";
 import { useTheme } from "@/lib/ThemeContext";
 
+interface UsageStats {
+  totalTokens: number;
+  promptTokens: number;
+  completionTokens: number;
+  bySource: { gpt: number; complete: number };
+  requestCount: { gpt: number; complete: number };
+  lastUpdated: number;
+}
+
 export default function SettingsPage() {
   const { data: session, status } = useSession();
   const { theme, setTheme } = useTheme();
+  const [usage, setUsage] = useState<UsageStats | null>(null);
+  const [usageLoading, setUsageLoading] = useState(true);
+
+  const fetchUsage = useCallback(async () => {
+    try {
+      const res = await fetch("/api/usage", { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        setUsage(data);
+      } else {
+        setUsage(null);
+      }
+    } catch {
+      setUsage(null);
+    } finally {
+      setUsageLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (session?.user) fetchUsage();
+    else setUsageLoading(false);
+  }, [session?.user, fetchUsage]);
 
   if (status === "loading") {
     return (
@@ -77,6 +110,54 @@ export default function SettingsPage() {
                 </button>
               ))}
             </div>
+          </div>
+        </section>
+
+        <section className="mb-8">
+          <h2 className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-3">
+            AI usage
+          </h2>
+          <div className="rounded-xl border border-slate-700/60 bg-surface-900/80 p-4">
+            {usageLoading ? (
+              <p className="text-sm text-slate-400">Loading…</p>
+            ) : usage ? (
+              <>
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <p className="text-xs text-slate-500 uppercase tracking-wider">Total tokens</p>
+                    <p className="text-lg font-semibold text-slate-100">
+                      {usage.totalTokens.toLocaleString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 uppercase tracking-wider">Requests</p>
+                    <p className="text-lg font-semibold text-slate-100">
+                      {(usage.requestCount.gpt + usage.requestCount.complete).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between text-slate-400">
+                    <span>GPT assistant (chat)</span>
+                    <span>{usage.bySource.gpt.toLocaleString()} tokens · {usage.requestCount.gpt} requests</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Inline completion</span>
+                    <span>{usage.bySource.complete.toLocaleString()} tokens · {usage.requestCount.complete} requests</span>
+                  </div>
+                </div>
+                {usage.lastUpdated > 0 && (
+                  <p className="mt-3 text-xs text-slate-500">
+                    Last activity: {new Date(usage.lastUpdated).toLocaleString()}
+                  </p>
+                )}
+                <p className="mt-2 text-xs text-slate-500">
+                  Usage is tracked per session. Stats reset when the server restarts (in-memory store).
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-slate-400">No usage data yet. Use the GPT panel or inline completion to see stats here.</p>
+            )}
           </div>
         </section>
 

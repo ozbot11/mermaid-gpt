@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getGPTResponse } from "@/lib/openai";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { recordUsage } from "@/lib/usage";
 
 const MAX_MESSAGE_LENGTH = 4_000;
 const MAX_MERMAID_LENGTH = 20_000;
@@ -63,7 +64,13 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await getGPTResponse(message, mermaid, mode);
-    return NextResponse.json(result);
+    if (result.usage && session.user.email) {
+      recordUsage(session.user.email, result.usage, "gpt");
+    }
+    return NextResponse.json({
+      explanation: result.explanation,
+      mermaid: result.mermaid,
+    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
     if (msg === "OPENAI_RATE_LIMIT") {

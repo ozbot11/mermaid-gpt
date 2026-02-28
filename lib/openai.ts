@@ -8,11 +8,17 @@ function stripMermaidFences(raw: string): string {
   return s.trim();
 }
 
+export interface TokenUsage {
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+}
+
 export async function getGPTResponse(
   userMessage: string,
   currentMermaid: string,
   mode: "fix" | "improve" | "generate"
-): Promise<{ explanation: string; mermaid: string }> {
+): Promise<{ explanation: string; mermaid: string; usage?: TokenUsage }> {
   const validateRule = `
 CRITICAL - VALIDATE BEFORE RETURN:
 - You must NEVER return broken or invalid Mermaid code. The "mermaid" field will be rendered by a real Mermaid parser; invalid syntax will break the app.
@@ -115,15 +121,26 @@ In "explanation", briefly say what diagram you created and why. In "mermaid", ou
     throw new Error(err || `OpenAI API error: ${res.status}`);
   }
 
-  const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+  const data = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+    usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+  };
   const raw = data.choices?.[0]?.message?.content;
   if (!raw) throw new Error("Empty response from OpenAI");
 
   const parsed = JSON.parse(raw) as { explanation?: string; mermaid?: string };
   const mermaidRaw = typeof parsed.mermaid === "string" ? parsed.mermaid : "";
+  const usage: TokenUsage | undefined = data.usage?.total_tokens != null
+    ? {
+        prompt_tokens: data.usage.prompt_tokens ?? 0,
+        completion_tokens: data.usage.completion_tokens ?? 0,
+        total_tokens: data.usage.total_tokens ?? 0,
+      }
+    : undefined;
   return {
     explanation: typeof parsed.explanation === "string" ? parsed.explanation : "",
     mermaid: stripMermaidFences(mermaidRaw),
+    usage,
   };
 }
 
@@ -134,9 +151,12 @@ Rules:
 - Prefer a single line or short clause (e.g. one more node, arrow, or keyword). Do not output long blocks unless the prefix clearly starts one.
 - No markdown, no explanation, no code fences.`;
 
-export async function getInlineCompletion(prefix: string, suffix: string): Promise<string> {
+export async function getInlineCompletion(
+  prefix: string,
+  suffix: string
+): Promise<{ completion: string; usage?: TokenUsage }> {
   const trimmedPrefix = prefix.trimEnd();
-  if (trimmedPrefix.length < 3) return "";
+  if (trimmedPrefix.length < 3) return { completion: "" };
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 8_000);
@@ -171,10 +191,20 @@ export async function getInlineCompletion(prefix: string, suffix: string): Promi
     throw new Error(err || `OpenAI API error: ${res.status}`);
   }
 
-  const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+  const data = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+    usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+  };
   const raw = data.choices?.[0]?.message?.content;
-  if (!raw) return "";
+  if (!raw) return { completion: "" };
 
-  const text = raw.trim();
-  return text.replace(/^```\w*\n?|```\s*$/g, "").trim();
+  const text = raw.trim().replace(/^```\w*\n?|```\s*$/g, "").trim();
+  const usage: TokenUsage | undefined = data.usage?.total_tokens != null
+    ? {
+        prompt_tokens: data.usage.prompt_tokens ?? 0,
+        completion_tokens: data.usage.completion_tokens ?? 0,
+        total_tokens: data.usage.total_tokens ?? 0,
+      }
+    : undefined;
+  return { completion: text, usage };
 }
