@@ -1,6 +1,6 @@
 # MermaidGPT
 
-A production-ready web IDE for engineers to write, edit, render, and AI-assist Mermaid diagrams.
+AI-assisted Mermaid diagram editor with live rendering, export tools, and prompt-based diagram generation.
 
 ## Features
 
